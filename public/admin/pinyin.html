@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>拼音课程管理 - Fun Kids</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif; background: #F5F5F5; color: #333; min-height: 100vh; }
+
+    /* 登录 */
+    .login-overlay {
+      position: fixed; inset: 0; background: #F5F5F5;
+      display: flex; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .login-overlay.hidden { display: none; }
+    .login-box {
+      background: white; border-radius: 12px; padding: 40px 36px;
+      text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      max-width: 380px; width: 90%;
+    }
+    .login-box h2 { font-size: 22px; color: #333; margin-bottom: 24px; font-weight: 700; }
+    .login-box input {
+      width: 100%; padding: 12px 16px; font-size: 15px;
+      border: 1px solid #DDD; border-radius: 8px; outline: none;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    }
+    .login-box input:focus { border-color: #1976D2; }
+    .login-box button {
+      width: 100%; padding: 12px; margin-top: 16px; font-size: 15px; font-weight: 700;
+      background: #1976D2; color: white; border: none; border-radius: 8px; cursor: pointer;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    }
+    .login-box button:hover { background: #1565C0; }
+    .login-error { color: #F44336; margin-top: 10px; font-size: 13px; min-height: 18px; }
+
+    /* 主布局 */
+    .admin-app { display: none; }
+    .admin-app.visible { display: flex; min-height: 100vh; }
+
+    /* 顶部栏 */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; height: 56px;
+      background: white; border-bottom: 1px solid #E0E0E0;
+      display: flex; align-items: center; padding: 0 24px; z-index: 100;
+      gap: 16px;
+    }
+    .topbar-title { font-size: 18px; font-weight: 700; color: #333; }
+    .topbar-actions { margin-left: auto; display: flex; gap: 8px; }
+    .topbar-actions a, .topbar-actions button {
+      padding: 8px 14px; font-size: 13px; border-radius: 6px; cursor: pointer;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif; border: 1px solid #DDD; background: white; color: #555;
+    }
+    .topbar-actions button:hover, .topbar-actions a:hover { background: #F5F5F5; }
+    .topbar-actions .btn-danger { color: #F44336; border-color: #FFCDD2; }
+    .topbar-actions .btn-danger:hover { background: #FFF5F5; }
+
+    /* 侧边栏 */
+    .sidebar {
+      position: fixed; top: 56px; left: 0; bottom: 0; width: 220px;
+      background: white; border-right: 1px solid #E0E0E0;
+      padding: 20px 16px; overflow-y: auto;
+    }
+    .sidebar h4 { font-size: 12px; color: #999; text-transform: uppercase; margin-bottom: 12px; font-weight: 700; }
+    .sidebar label {
+      display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+      border-radius: 6px; cursor: pointer; font-size: 14px; margin-bottom: 2px;
+    }
+    .sidebar label:hover { background: #F5F5F5; }
+    .sidebar label input { accent-color: #1976D2; }
+    .sidebar .divider { border-top: 1px solid #EEE; margin: 16px 0; }
+    .sidebar .radio-group label input[type="radio"] { accent-color: #1976D2; }
+    .sidebar button {
+      width: 100%; padding: 10px; margin-top: 16px; font-size: 14px; font-weight: 500;
+      background: #E3F2FD; color: #1976D2; border: none; border-radius: 8px; cursor: pointer;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    }
+    .sidebar button:hover { background: #BBDEFB; }
+
+    /* 主内容区 */
+    .main-content {
+      margin-left: 220px; margin-top: 56px; padding: 24px; flex: 1;
+    }
+
+    /* 搜索和统计 */
+    .search-bar {
+      display: flex; gap: 12px; margin-bottom: 16px; align-items: center;
+    }
+    .search-bar input {
+      flex: 1; padding: 10px 16px; font-size: 14px;
+      border: 1px solid #DDD; border-radius: 8px; outline: none;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    }
+    .search-bar input:focus { border-color: #1976D2; }
+    .stats-bar {
+      display: flex; gap: 16px; margin-bottom: 20px; font-size: 13px; color: #666;
+    }
+    .stats-bar span { background: #F5F5F5; padding: 4px 12px; border-radius: 6px; }
+
+    /* 表格 */
+    .data-table {
+      width: 100%; background: white; border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden;
+    }
+    .data-table table { width: 100%; border-collapse: collapse; }
+    .data-table th {
+      text-align: left; padding: 12px 16px; font-size: 12px;
+      color: #999; font-weight: 700; background: #FAFAFA; border-bottom: 1px solid #EEE;
+    }
+    .data-table td {
+      padding: 10px 16px; font-size: 14px; border-bottom: 1px solid #F5F5F5;
+      vertical-align: middle;
+    }
+    .data-table tr:hover td { background: #FAFAFA; }
+    .data-table .img-thumb {
+      width: 40px; height: 40px; border-radius: 8px; object-fit: cover;
+    }
+    .data-table .no-img { color: #CCC; font-size: 12px; }
+    .data-table .emoji-cell { font-size: 20px; }
+    .data-table .actions { display: flex; gap: 6px; }
+    .data-table .actions button {
+      padding: 4px 10px; font-size: 12px; border-radius: 4px; cursor: pointer;
+      border: 1px solid #DDD; background: white; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    }
+    .data-table .actions .btn-edit { color: #1976D2; }
+    .data-table .actions .btn-edit:hover { background: #E3F2FD; }
+    .data-table .actions .btn-del { color: #F44336; }
+    .data-table .actions .btn-del:hover { background: #FFF5F5; }
+
+    /* 模态框 */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+      display: none; align-items: center; justify-content: center; z-index: 200;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: white; border-radius: 16px; padding: 32px;
+      width: 500px; max-width: 95vw; max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    }
+    .modal h3 { font-size: 18px; margin-bottom: 24px; font-weight: 700; }
+    .modal .form-row { margin-bottom: 16px; }
+    .modal .form-row label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; font-weight: 500; }
+    .modal .form-row input, .modal .form-row select {
+      width: 100%; padding: 10px 12px; font-size: 14px;
+      border: 1px solid #DDD; border-radius: 8px; outline: none;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    }
+    .modal .form-row input:focus, .modal .form-row select:focus { border-color: #1976D2; }
+    .modal .form-row-inline { display: flex; gap: 12px; }
+    .modal .form-row-inline .form-row { flex: 1; }
+    .modal .tone-group { display: flex; gap: 8px; }
+    .modal .tone-group label {
+      display: inline-flex; align-items: center; gap: 4px; cursor: pointer;
+      padding: 6px 12px; border: 1px solid #DDD; border-radius: 6px; font-size: 14px;
+    }
+    .modal .tone-group input:checked + span { color: #1976D2; font-weight: 700; }
+    .modal .pinyin-preview {
+      background: #F5F5F5; padding: 12px; border-radius: 8px;
+      text-align: center; font-size: 28px; font-weight: 700; color: #1976D2;
+      margin-bottom: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    }
+    .modal .img-preview {
+      width: 160px; height: 160px; border-radius: 12px; object-fit: cover;
+      border: 2px solid #EEE; margin-bottom: 8px;
+    }
+    .modal .img-area { text-align: center; margin-bottom: 16px; }
+    .modal .img-area button {
+      padding: 6px 14px; font-size: 13px; border-radius: 6px; cursor: pointer;
+      border: 1px solid #DDD; background: white; margin: 4px;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    }
+    .modal .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+    .modal .modal-actions button {
+      padding: 10px 24px; font-size: 14px; border-radius: 8px; cursor: pointer;
+      border: none; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    }
+    .modal .btn-save { background: #1976D2; color: white; }
+    .modal .btn-save:hover { background: #1565C0; }
+    .modal .btn-cancel { background: #EEE; color: #666; }
+    .modal .btn-cancel:hover { background: #DDD; }
+
+    /* 导入模态框 */
+    .import-mode { display: flex; gap: 12px; margin-bottom: 16px; }
+    .import-mode label {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border: 1px solid #DDD; border-radius: 8px;
+      cursor: pointer; font-size: 14px;
+    }
+    .import-mode input:checked + span { color: #1976D2; font-weight: 700; }
+
+    /* 确认对话框 */
+    .confirm-box {
+      text-align: center;
+    }
+    .confirm-box p { margin-bottom: 20px; font-size: 15px; line-height: 1.6; }
+    .confirm-box .modal-actions { justify-content: center; }
+  </style>
+</head>
+<body>
+  <!-- 登录 -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-box">
+      <h2>管理员登录</h2>
+      <input type="password" id="loginPassword" placeholder="请输入管理员密码">
+      <button onclick="doLogin()">登 录</button>
+      <div class="login-error" id="loginError"></div>
+    </div>
+  </div>
+
+  <!-- 管理界面 -->
+  <div class="admin-app" id="adminApp">
+    <!-- 顶部栏 -->
+    <div class="topbar">
+      <a href="/app/index.html" style="color:#1976D2;text-decoration:none;font-size:14px;"><i class="fas fa-arrow-left"></i> 返回主页</a>
+      <span class="topbar-title">拼音课程管理</span>
+      <div class="topbar-actions">
+        <button onclick="exportData()"><i class="fas fa-download"></i> 导出 JSON</button>
+        <button onclick="showImportModal()"><i class="fas fa-upload"></i> 导入 JSON</button>
+        <button class="btn-danger" onclick="showResetConfirm()"><i class="fas fa-rotate-left"></i> 重置数据</button>
+      </div>
+    </div>
+
+    <!-- 侧边栏 -->
+    <div class="sidebar" id="sidebar">
+      <h4>按分类筛选</h4>
+      <div id="categoryFilters"></div>
+      <div class="divider"></div>
+      <h4>按图片状态</h4>
+      <div class="radio-group">
+        <label><input type="radio" name="imgFilter" value="" checked onchange="applyFilters()"><span>全部</span></label>
+        <label><input type="radio" name="imgFilter" value="true" onchange="applyFilters()"><span>有图片</span></label>
+        <label><input type="radio" name="imgFilter" value="false" onchange="applyFilters()"><span>缺图片</span></label>
+      </div>
+      <div class="divider"></div>
+      <button onclick="showAddModal()"><i class="fas fa-plus"></i> 新增条目</button>
+    </div>
+
+    <!-- 主内容 -->
+    <div class="main-content">
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="搜索拼音、汉字、释义..." oninput="debounceSearch()">
+      </div>
+      <div class="stats-bar" id="statsBar"></div>
+      <div class="data-table">
+        <table>
+          <thead>
+            <tr>
+              <th>拼音</th><th>汉字</th><th>声母</th><th>韵母</th>
+              <th>声调</th><th>分类</th><th>Emoji</th><th>图片</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 编辑/新增模态框 -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <h3 id="modalTitle">新增拼音条目</h3>
+      <div class="pinyin-preview" id="pinyinPreview">-</div>
+
+      <div class="form-row-inline">
+        <div class="form-row">
+          <label>声母</label>
+          <select id="fInitial" onchange="updatePreview()">
+            <option value="">（零声母）</option>
+            <option>b</option><option>p</option><option>m</option><option>f</option>
+            <option>d</option><option>t</option><option>n</option><option>l</option>
+            <option>g</option><option>k</option><option>h</option>
+            <option>j</option><option>q</option><option>x</option>
+            <option>zh</option><option>ch</option><option>sh</option><option>r</option>
+            <option>z</option><option>c</option><option>s</option>
+            <option>y</option><option>w</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>韵母</label>
+          <select id="fFinal" onchange="updatePreview()">
+            <option>a</option><option>o</option><option>e</option><option>i</option><option>u</option><option>v</option>
+            <option>ai</option><option>ei</option><option>ui</option><option>ao</option><option>ou</option><option>iu</option>
+            <option>ie</option><option>ue</option><option>er</option>
+            <option>an</option><option>en</option><option>in</option><option>un</option><option>vn</option>
+            <option>ang</option><option>eng</option><option>ing</option><option>ong</option>
+            <option>ia</option><option>iao</option><option>ian</option><option>iang</option><option>iong</option>
+            <option>ua</option><option>uo</option><option>uai</option><option>uan</option><option>uang</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>声调</label>
+        <div class="tone-group">
+          <label><input type="radio" name="fTone" value="1" checked onchange="updatePreview()"><span>ˉ 一声</span></label>
+          <label><input type="radio" name="fTone" value="2" onchange="updatePreview()"><span>ˊ 二声</span></label>
+          <label><input type="radio" name="fTone" value="3" onchange="updatePreview()"><span>ˇ 三声</span></label>
+          <label><input type="radio" name="fTone" value="4" onchange="updatePreview()"><span>ˋ 四声</span></label>
+        </div>
+      </div>
+
+      <div class="form-row-inline">
+        <div class="form-row">
+          <label>汉字</label>
+          <input type="text" id="fChar" maxlength="4" placeholder="如：猫">
+        </div>
+        <div class="form-row">
+          <label>释义</label>
+          <input type="text" id="fMeaning" placeholder="如：小猫咪">
+        </div>
+      </div>
+
+      <div class="form-row-inline">
+        <div class="form-row">
+          <label>分类</label>
+          <input type="text" id="fCategory" placeholder="如：动物" list="categoryList">
+          <datalist id="categoryList"></datalist>
+        </div>
+        <div class="form-row">
+          <label>Emoji</label>
+          <input type="text" id="fEmoji" maxlength="4" placeholder="如：🐱">
+        </div>
+      </div>
+
+      <div class="form-row img-area" id="imgArea">
+        <label style="display:block;margin-bottom:8px;">图片</label>
+        <img class="img-preview" id="imgPreview" src="" style="display:none;">
+        <div>
+          <input type="file" id="imgFile" accept="image/*" style="display:none;" onchange="previewImage(this)">
+          <button onclick="document.getElementById('imgFile').click()"><i class="fas fa-image"></i> 选择图片</button>
+          <button onclick="clearImage()"><i class="fas fa-trash"></i> 清除图片</button>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal('editModal')">取消</button>
+        <button class="btn-save" onclick="saveItem()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 导入模态框 -->
+  <div class="modal-overlay" id="importModal">
+    <div class="modal">
+      <h3>导入 JSON 数据</h3>
+      <div class="form-row">
+        <label>选择 JSON 文件</label>
+        <input type="file" id="importFile" accept=".json">
+      </div>
+      <div class="form-row">
+        <label>导入模式</label>
+        <div class="import-mode">
+          <label><input type="radio" name="importMode" value="merge" checked><span>合并（保留现有，覆盖重复）</span></label>
+          <label><input type="radio" name="importMode" value="replace"><span>替换（清空后导入）</span></label>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal('importModal')">取消</button>
+        <button class="btn-save" onclick="doImport()">导入</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 确认对话框 -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal" style="width:380px;">
+      <div class="confirm-box">
+        <h3 id="confirmTitle">确认操作</h3>
+        <p id="confirmMsg"></p>
+        <div class="modal-actions">
+          <button class="btn-cancel" onclick="closeModal('confirmModal')">取消</button>
+          <button class="btn-save" id="confirmBtn" style="background:#F44336;">确认</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TOKEN_KEY = 'fun_kids_token';
+    const ROLE_KEY = 'fun_kids_role';
+    let allData = [];
+    let categories = [];
+    let editingId = null;
+    let searchTimer = null;
+
+    function getToken() { return localStorage.getItem(TOKEN_KEY); }
+    function authHeaders() { return { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' }; }
+
+    // 登录
+    async function doLogin() {
+      const pw = document.getElementById('loginPassword').value.trim();
+      const err = document.getElementById('loginError');
+      if (!pw) { err.textContent = '请输入密码'; return; }
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pw, role: 'admin' }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          localStorage.setItem(TOKEN_KEY, data.token);
+          localStorage.setItem(ROLE_KEY, data.role);
+          document.getElementById('loginOverlay').classList.add('hidden');
+          document.getElementById('adminApp').classList.add('visible');
+          loadAll();
+        } else { err.textContent = data.error; }
+      } catch { err.textContent = '网络错误'; }
+    }
+    document.getElementById('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+    function checkAuth() {
+      const token = getToken();
+      const role = localStorage.getItem(ROLE_KEY);
+      if (token && role === 'admin') {
+        document.getElementById('loginOverlay').classList.add('hidden');
+        document.getElementById('adminApp').classList.add('visible');
+        loadAll();
+      }
+    }
+
+    // 加载数据
+    async function loadAll() {
+      await Promise.all([loadData(), loadCategories(), loadStats()]);
+    }
+
+    async function loadData() {
+      const params = buildFilterParams();
+      const res = await fetch(`/api/pinyin?${params}`, { headers: authHeaders() });
+      if (res.status === 401) { localStorage.clear(); location.reload(); return; }
+      allData = await res.json();
+      renderTable();
+    }
+
+    async function loadCategories() {
+      const res = await fetch('/api/pinyin/categories', { headers: authHeaders() });
+      categories = await res.json();
+      renderCategoryFilters();
+      updateCategoryDatalist();
+    }
+
+    async function loadStats() {
+      const res = await fetch('/api/pinyin/stats', { headers: authHeaders() });
+      const s = await res.json();
+      document.getElementById('statsBar').innerHTML =
+        `<span>共 <b>${s.total}</b> 条</span><span>有图片 <b>${s.withImage}</b> 条</span><span>缺图片 <b>${s.withoutImage}</b> 条</span>`;
+    }
+
+    function buildFilterParams() {
+      const p = new URLSearchParams();
+      const search = document.getElementById('searchInput')?.value?.trim();
+      if (search) p.set('search', search);
+      const imgFilter = document.querySelector('input[name="imgFilter"]:checked')?.value;
+      if (imgFilter) p.set('hasImage', imgFilter);
+      const checkedCats = [...document.querySelectorAll('.cat-filter:checked')].map(c => c.value);
+      if (checkedCats.length === 1) p.set('category', checkedCats[0]);
+      return p.toString();
+    }
+
+    function renderCategoryFilters() {
+      const el = document.getElementById('categoryFilters');
+      el.innerHTML = categories.map(c =>
+        `<label><input type="checkbox" class="cat-filter" value="${c}" onchange="applyFilters()"><span>${c}</span></label>`
+      ).join('');
+    }
+
+    function updateCategoryDatalist() {
+      document.getElementById('categoryList').innerHTML = categories.map(c => `<option value="${c}">`).join('');
+    }
+
+    function applyFilters() { loadData(); }
+    function debounceSearch() {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => loadData(), 300);
+    }
+
+    // 渲染表格
+    function renderTable() {
+      const tbody = document.getElementById('tableBody');
+      if (allData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#999;padding:40px;">暂无数据</td></tr>';
+        return;
+      }
+      tbody.innerHTML = allData.map(item => `
+        <tr>
+          <td><b style="font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei','Hiragino Sans GB',sans-serif">${item.pinyin}</b></td>
+          <td style="font-size:20px;font-weight:700;">${item.char}</td>
+          <td>${item.initial || '-'}</td>
+          <td>${item.final}</td>
+          <td>${item.tone}</td>
+          <td>${item.category || '-'}</td>
+          <td class="emoji-cell">${item.emoji || '-'}</td>
+          <td>${item.image ? `<img class="img-thumb" src="/uploads/pinyin/${item.image}">` : '<span class="no-img">缺</span>'}</td>
+          <td class="actions">
+            <button class="btn-edit" onclick="showEditModal('${item.id}')"><i class="fas fa-edit"></i></button>
+            <button class="btn-del" onclick="confirmDelete('${item.id}','${item.char}')"><i class="fas fa-trash"></i></button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // 拼音声调映射
+    const toneMap = {
+      'a': ['ā','á','ǎ','à'], 'o': ['ō','ó','ǒ','ò'], 'e': ['ē','é','ě','è'],
+      'i': ['ī','í','ǐ','ì'], 'u': ['ū','ú','ǔ','ù'], 'v': ['ǖ','ǘ','ǚ','ǜ'],
+    };
+    function addTone(finalStr, tone) {
+      const priority = ['a','o','e','i','u','v'];
+      let target = '';
+      for (const ch of priority) {
+        if (finalStr.includes(ch)) {
+          if (ch === 'i' && finalStr.includes('u') && finalStr.indexOf('u') > finalStr.indexOf('i')) { target = 'u'; break; }
+          if (ch === 'u' && finalStr.includes('i') && finalStr.indexOf('i') > finalStr.indexOf('u')) { target = 'i'; break; }
+          target = ch; break;
+        }
+      }
+      if (!target || !toneMap[target]) return finalStr;
+      return finalStr.replace(target, toneMap[target][tone - 1]);
+    }
+
+    function updatePreview() {
+      const initial = document.getElementById('fInitial').value;
+      const final = document.getElementById('fFinal').value;
+      const tone = parseInt(document.querySelector('input[name="fTone"]:checked')?.value || '1');
+      const display = initial + addTone(final, tone);
+      document.getElementById('pinyinPreview').textContent = display || '-';
+    }
+
+    // 模态框
+    function showAddModal() {
+      editingId = null;
+      document.getElementById('modalTitle').textContent = '新增拼音条目';
+      document.getElementById('fInitial').value = '';
+      document.getElementById('fFinal').value = 'a';
+      document.querySelector('input[name="fTone"][value="1"]').checked = true;
+      document.getElementById('fChar').value = '';
+      document.getElementById('fMeaning').value = '';
+      document.getElementById('fCategory').value = '';
+      document.getElementById('fEmoji').value = '';
+      document.getElementById('imgPreview').style.display = 'none';
+      document.getElementById('imgFile').value = '';
+      updatePreview();
+      openModal('editModal');
+    }
+
+    function showEditModal(id) {
+      const item = allData.find(d => d.id === id);
+      if (!item) return;
+      editingId = id;
+      document.getElementById('modalTitle').textContent = '编辑拼音条目';
+      document.getElementById('fInitial').value = item.initial;
+      document.getElementById('fFinal').value = item.final;
+      const toneRadio = document.querySelector(`input[name="fTone"][value="${item.tone}"]`);
+      if (toneRadio) toneRadio.checked = true;
+      document.getElementById('fChar').value = item.char;
+      document.getElementById('fMeaning').value = item.meaning || '';
+      document.getElementById('fCategory').value = item.category || '';
+      document.getElementById('fEmoji').value = item.emoji || '';
+      const preview = document.getElementById('imgPreview');
+      if (item.image) {
+        preview.src = `/uploads/pinyin/${item.image}`;
+        preview.style.display = 'block';
+      } else {
+        preview.style.display = 'none';
+      }
+      document.getElementById('imgFile').value = '';
+      updatePreview();
+      openModal('editModal');
+    }
+
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    function previewImage(input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const preview = document.getElementById('imgPreview');
+          preview.src = e.target.result;
+          preview.style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+    function clearImage() {
+      document.getElementById('imgPreview').style.display = 'none';
+      document.getElementById('imgFile').value = '';
+    }
+
+    // 保存
+    async function saveItem() {
+      const initial = document.getElementById('fInitial').value;
+      const finalVal = document.getElementById('fFinal').value;
+      const tone = parseInt(document.querySelector('input[name="fTone"]:checked').value);
+      const char = document.getElementById('fChar').value.trim();
+      const meaning = document.getElementById('fMeaning').value.trim();
+      const category = document.getElementById('fCategory').value.trim();
+      const emoji = document.getElementById('fEmoji').value.trim();
+      const pinyinStr = initial + addTone(finalVal, tone);
+
+      if (!char) { alert('请输入汉字'); return; }
+
+      const body = { pinyin: pinyinStr, initial, final: finalVal, tone, char, meaning, category, emoji };
+
+      try {
+        let res;
+        if (editingId) {
+          res = await fetch(`/api/pinyin/${editingId}`, {
+            method: 'PUT', headers: authHeaders(), body: JSON.stringify(body),
+          });
+        } else {
+          res = await fetch('/api/pinyin', {
+            method: 'POST', headers: authHeaders(), body: JSON.stringify(body),
+          });
+        }
+        const data = await res.json();
+        if (!res.ok) { alert(data.error); return; }
+
+        // 上传图片
+        const imgFile = document.getElementById('imgFile').files[0];
+        if (imgFile) {
+          const formData = new FormData();
+          formData.append('image', imgFile);
+          await fetch(`/api/pinyin/${data.id}/image`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getToken()}` },
+            body: formData,
+          });
+        }
+
+        closeModal('editModal');
+        loadAll();
+      } catch { alert('保存失败'); }
+    }
+
+    // 删除
+    function confirmDelete(id, char) {
+      document.getElementById('confirmTitle').textContent = '确认删除';
+      document.getElementById('confirmMsg').textContent = `确定要删除「${char}」吗？此操作不可恢复。`;
+      document.getElementById('confirmBtn').onclick = async () => {
+        await fetch(`/api/pinyin/${id}`, { method: 'DELETE', headers: authHeaders() });
+        closeModal('confirmModal');
+        loadAll();
+      };
+      openModal('confirmModal');
+    }
+
+    // 导出
+    async function exportData() {
+      const res = await fetch('/api/pinyin/export', { headers: authHeaders() });
+      const data = await res.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `pinyin-data-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+    }
+
+    // 导入
+    function showImportModal() { openModal('importModal'); }
+    async function doImport() {
+      const file = document.getElementById('importFile').files[0];
+      if (!file) { alert('请选择文件'); return; }
+      const mode = document.querySelector('input[name="importMode"]:checked').value;
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        const res = await fetch('/api/pinyin/import', {
+          method: 'POST', headers: authHeaders(),
+          body: JSON.stringify({ data: Array.isArray(data) ? data : [data], mode }),
+        });
+        const result = await res.json();
+        if (res.ok) {
+          alert(`导入成功！共导入 ${result.imported} 条，当前总计 ${result.total} 条`);
+          closeModal('importModal');
+          loadAll();
+        } else { alert(result.error); }
+      } catch { alert('文件格式错误'); }
+    }
+
+    // 重置
+    function showResetConfirm() {
+      document.getElementById('confirmTitle').textContent = '重置数据';
+      document.getElementById('confirmMsg').textContent = '确定要重置为默认数据吗？所有自定义数据和图片将被删除。';
+      document.getElementById('confirmBtn').onclick = async () => {
+        await fetch('/api/pinyin/reset', { method: 'POST', headers: authHeaders() });
+        closeModal('confirmModal');
+        loadAll();
+      };
+      openModal('confirmModal');
+    }
+
+    checkAuth();
+  </script>
+</body>
+</html>

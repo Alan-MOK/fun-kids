@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>声母韵母 TTS 发音测试</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 { text-align: center; margin-bottom: 8px; font-size: 24px; }
+
+    /* 引擎切换 */
+    .engine-switch {
+      text-align: center;
+      margin-bottom: 12px;
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+    .engine-btn {
+      padding: 8px 20px;
+      border: 2px solid #ddd;
+      border-radius: 20px;
+      background: white;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      transition: all 0.15s;
+    }
+    .engine-btn:hover { border-color: #90CAF9; }
+    .engine-btn.active { border-color: #1565C0; background: #E3F2FD; color: #1565C0; }
+    .engine-btn.active-baidu { border-color: #D32F2F; background: #FFEBEE; color: #D32F2F; }
+    .status-bar { text-align: center; margin-bottom: 12px; }
+    .engine-status {
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      display: inline-block;
+    }
+    .status-ok { background: #E8F5E9; color: #2E7D32; }
+    .status-warn { background: #FFF3E0; color: #E65100; }
+    .status-err { background: #FFEBEE; color: #C62828; }
+
+    /* 百度音色选择 */
+    .voice-select {
+      text-align: center;
+      margin-bottom: 12px;
+      display: none;
+      gap: 6px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .voice-select.show { display: flex; }
+    .voice-chip {
+      padding: 4px 12px;
+      border: 1.5px solid #ddd;
+      border-radius: 14px;
+      background: white;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.15s;
+    }
+    .voice-chip:hover { border-color: #EF9A9A; }
+    .voice-chip.active { border-color: #D32F2F; background: #FFEBEE; color: #D32F2F; font-weight: bold; }
+
+    .controls {
+      text-align: center;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .controls label { font-size: 14px; color: #555; }
+    .controls input[type=range] { width: 100px; vertical-align: middle; }
+    .controls span { font-size: 14px; font-weight: bold; min-width: 32px; display: inline-block; }
+    h2 {
+      margin: 20px 0 12px;
+      font-size: 18px;
+      color: #333;
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 6px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 12px 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .card:hover { border-color: #42A5F5; background: #E3F2FD; }
+    .card:active { transform: scale(0.95); }
+    .card.speaking { border-color: #FF9800; background: #FFF3E0; animation: pulse 0.6s infinite alternate; }
+    @keyframes pulse { to { box-shadow: 0 0 12px rgba(255,152,0,0.4); } }
+    .card .pinyin { font-size: 20px; font-weight: bold; color: #1565C0; }
+    .card .char { font-size: 16px; color: #333; margin-top: 4px; }
+
+    .finals-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .final-card {
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .final-card .pinyin { font-size: 18px; font-weight: bold; color: #2E7D32; margin-bottom: 6px; }
+    .tone-row {
+      display: flex;
+      gap: 4px;
+      justify-content: center;
+    }
+    .tone-btn {
+      width: 36px; height: 36px;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      background: #fafafa;
+      cursor: pointer;
+      font-size: 15px;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .tone-btn:hover { border-color: #66BB6A; background: #E8F5E9; }
+    .tone-btn:active { transform: scale(0.9); }
+    .tone-btn.speaking { border-color: #FF9800; background: #FFF3E0; }
+    .tone-label { font-size: 10px; color: #999; margin-top: 2px; text-align: center; }
+
+    .log {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 13px;
+      color: #555;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 16px;
+    }
+    .log div { padding: 2px 0; border-bottom: 1px solid #f0f0f0; }
+    .log .time { color: #aaa; margin-right: 8px; }
+    .log .tag { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-right: 4px; }
+    .log .tag-web { background: #E3F2FD; color: #1565C0; }
+    .log .tag-baidu { background: #FFEBEE; color: #D32F2F; }
+  </style>
+</head>
+<body>
+
+<h1>声母 / 韵母 TTS 发音测试</h1>
+
+<div class="engine-switch">
+  <button class="engine-btn active" id="btn-web" onclick="setEngine('web')">Web Speech API</button>
+  <button class="engine-btn" id="btn-baidu" onclick="setEngine('baidu')">百度 TTS</button>
+</div>
+<div class="status-bar">
+  <span class="engine-status status-ok" id="engineStatus">当前引擎: Web Speech API (浏览器内置)</span>
+</div>
+
+<div class="voice-select" id="voiceSelect"></div>
+
+<div class="controls">
+  <label>语速: <input type="range" id="rate" min="0" max="15" step="1" value="5"> <span id="rateVal">5</span></label>
+  <label>音调: <input type="range" id="pitch" min="0" max="15" step="1" value="5"> <span id="pitchVal">5</span></label>
+</div>
+
+<h2>声母（23个）</h2>
+<div class="grid" id="initials"></div>
+
+<h2>韵母（带四声 - 汉字）</h2>
+<div class="finals-grid" id="finals"></div>
+
+<h2>韵母音调测试（直接拼音）</h2>
+<div class="finals-grid" id="pinyinTones"></div>
+
+<h2>播放日志</h2>
+<div class="log" id="log"></div>
+
+<script>
+  const INITIAL_SOUND = {
+    'b':'波','p':'坡','m':'摸','f':'佛',
+    'd':'得','t':'特','n':'讷','l':'勒',
+    'g':'哥','k':'科','h':'喝',
+    'j':'基','q':'七','x':'西',
+    'zh':'知','ch':'吃','sh':'诗','r':'日',
+    'z':'资','c':'次','s':'思',
+    'y':'衣','w':'乌'
+  };
+
+  const FINAL_SOUND = {
+    'a':['啊','啊','啊','啊'], 'o':['喔','哦','哦','哦'], 'e':['讹','额','恶','饿'],
+    'i':['衣','姨','以','意'], 'u':['乌','无','五','物'], 'v':['迂','鱼','雨','遇'],
+    'ai':['哀','挨','矮','爱'], 'ei':['诶','诶','诶','诶'], 'ui':['威','围','伟','味'],
+    'ao':['凹','熬','袄','奥'], 'ou':['欧','欧','偶','呕'], 'iu':['优','由','有','又'],
+    'ie':['耶','爷','也','夜'], 'ue':['约','月','月','月'], 'er':['耳','而','耳','二'],
+    'an':['安','安','俺','暗'], 'en':['恩','恩','恩','恩'], 'in':['音','银','引','印'],
+    'un':['温','文','稳','问'], 'vn':['晕','云','允','运'],
+    'ang':['昂','昂','昂','昂'], 'eng':['鞥','鞥','鞥','鞥'], 'ing':['英','迎','影','硬'], 'ong':['翁','翁','翁','翁'],
+    'ia':['呀','牙','雅','亚'], 'iao':['腰','摇','咬','要'], 'ian':['烟','延','眼','燕'], 'iang':['央','阳','养','样'], 'iong':['拥','用','勇','用'],
+    'ua':['蛙','娃','瓦','袜'], 'uo':['窝','挪','我','卧'], 'uai':['歪','外','外','外'], 'uan':['弯','完','晚','万'], 'uang':['汪','王','往','旺']
+  };
+
+  // 韵母拼音音调测试集（直接用拼音，不转汉字）
+  const FINAL_PINYIN_TONE = {
+    'a':  ['ā','á','ǎ','à'],   'o':  ['ō','ó','ǒ','ò'],   'e':  ['ē','é','ě','è'],
+    'i':  ['ī','í','ǐ','ì'],   'u':  ['ū','ú','ǔ','ù'],   'ü':  ['ǖ','ǘ','ǚ','ǜ'],
+    'ai': ['āi','ái','ǎi','ài'],     'ei': ['ēi','éi','ěi','èi'],     'ui': ['uī','uí','uǐ','uì'],
+    'ao': ['āo','áo','ǎo','ào'],     'ou': ['ōu','óu','ǒu','òu'],     'iu': ['iū','iú','iǔ','iù'],
+    'ie': ['iē','ié','iě','iè'],     'üe': ['üē','üé','üě','üè'],     'er': ['ēr','ér','ěr','èr'],
+    'an': ['ān','án','ǎn','àn'],     'en': ['ēn','én','ěn','èn'],     'in': ['īn','ín','ǐn','ìn'],
+    'un': ['ūn','ún','ǔn','ùn'],     'ün': ['ǖn','ǘn','ǚn','ǜn'],
+    'ang':['āng','áng','ǎng','àng'], 'eng':['ēng','éng','ěng','èng'], 'ing':['īng','íng','ǐng','ìng'], 'ong':['ōng','óng','ǒng','òng'],
+    'ia': ['iā','iá','iǎ','ià'],     'iao':['iāo','iáo','iǎo','iào'], 'ian':['iān','ián','iǎn','iàn'], 'iang':['iāng','iáng','iǎng','iàng'], 'iong':['iōng','ióng','iǒng','iòng'],
+    'ua': ['uā','uá','uǎ','uà'],     'uo': ['uō','uó','uǒ','uò'],     'uai':['uāi','uái','uǎi','uài'], 'uan':['uān','uán','uǎn','uàn'], 'uang':['uāng','uáng','uǎng','uàng']
+  };
+
+  const TONE_MARKS = ['ˉ', 'ˊ', 'ˇ', 'ˋ'];
+
+  // ===== 百度 TTS 配置（从服务端获取） =====
+  let baiduToken = '';
+
+  fetch('/api/config/tts').then(r => r.json()).then(c => {
+    baiduToken = c.token;
+  }).catch(() => {});
+
+  // 百度音色列表
+  const BAIDU_VOICES = [
+    { per: 0,   name: '度小美（标准女声）' },
+    { per: 1,   name: '度小宇（标准男声）' },
+    { per: 3,   name: '度逍遥（情感男声）' },
+    { per: 4,   name: '度丫丫（萝莉女声）' },
+    { per: 5003, name: '度逍遥（精品）' },
+    { per: 5118, name: '度小鹿（精品）' },
+    { per: 110,  name: '度小童（童声）' },
+    { per: 111,  name: '度小萌（萌童声）' },
+  ];
+  let baiduPer = 3; // 度逍遥（情感男声）
+
+  // ===== 引擎状态 =====
+  let currentEngine = 'web'; // 'web' | 'baidu'
+  let currentAudio = null;
+
+  // Web Speech API 默认参数
+  const WEB_DEFAULTS = { rateMin: 0.3, rateMax: 1.5, rateStep: 0.05, rateVal: 0.75, pitchMin: 0.5, pitchMax: 2, pitchStep: 0.1, pitchVal: 1.1 };
+  // 百度 TTS 参数范围
+  const BAIDU_DEFAULTS = { rateMin: 0, rateMax: 15, rateStep: 1, rateVal: 5, pitchMin: 0, pitchMax: 15, pitchStep: 1, pitchVal: 5 };
+
+  const rateEl = document.getElementById('rate');
+  const pitchEl = document.getElementById('pitch');
+  const rateValEl = document.getElementById('rateVal');
+  const pitchValEl = document.getElementById('pitchVal');
+  const logEl = document.getElementById('log');
+  const statusEl = document.getElementById('engineStatus');
+  const voiceSelectEl = document.getElementById('voiceSelect');
+
+  rateEl.oninput = () => rateValEl.textContent = rateEl.value;
+  pitchEl.oninput = () => pitchValEl.textContent = pitchEl.value;
+
+  // token 过期检测（播放失败时提示）
+  function onTokenExpired() {
+    statusEl.textContent = '百度 TTS: token 已过期，请用 curl/python 重新获取后替换代码中的 baiduToken';
+    statusEl.className = 'engine-status status-err';
+    addLog('token 已过期，请在终端运行注释中的 curl 命令重新获取');
+  }
+
+  // 渲染百度音色选项
+  function renderVoiceChips() {
+    voiceSelectEl.innerHTML = '<span style="font-size:13px;color:#777;margin-right:4px;">音色:</span>';
+    BAIDU_VOICES.forEach(v => {
+      const chip = document.createElement('button');
+      chip.className = 'voice-chip' + (v.per === baiduPer ? ' active' : '');
+      chip.textContent = v.name;
+      chip.onclick = () => {
+        baiduPer = v.per;
+        voiceSelectEl.querySelectorAll('.voice-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        addLog(`切换音色 → <b>${v.name}</b> (per=${v.per})`);
+      };
+      voiceSelectEl.appendChild(chip);
+    });
+  }
+  renderVoiceChips();
+
+  // 切换滑块参数范围
+  function applySliderDefaults(d) {
+    rateEl.min = d.rateMin; rateEl.max = d.rateMax; rateEl.step = d.rateStep; rateEl.value = d.rateVal;
+    pitchEl.min = d.pitchMin; pitchEl.max = d.pitchMax; pitchEl.step = d.pitchStep; pitchEl.value = d.pitchVal;
+    rateValEl.textContent = d.rateVal;
+    pitchValEl.textContent = d.pitchVal;
+  }
+
+  function setEngine(engine) {
+    currentEngine = engine;
+    document.getElementById('btn-web').className = 'engine-btn' + (engine === 'web' ? ' active' : '');
+    document.getElementById('btn-baidu').className = 'engine-btn' + (engine === 'baidu' ? ' active-baidu' : '');
+    voiceSelectEl.classList.toggle('show', engine === 'baidu');
+
+    if (engine === 'web') {
+      applySliderDefaults(WEB_DEFAULTS);
+      statusEl.textContent = '当前引擎: Web Speech API (浏览器内置)';
+      statusEl.className = 'engine-status status-ok';
+    } else {
+      applySliderDefaults(BAIDU_DEFAULTS);
+      statusEl.textContent = '当前引擎: 百度 TTS (token 有效期 30 天)3月26日到期';
+      statusEl.className = 'engine-status status-ok';
+    }
+    addLog(`切换引擎 → <b>${engine === 'web' ? 'Web Speech API' : '百度 TTS'}</b>`);
+  }
+
+  function addLog(msg) {
+    const now = new Date();
+    const t = now.toLocaleTimeString('zh-CN', { hour12: false });
+    const tag = currentEngine === 'web'
+      ? '<span class="tag tag-web">Web</span>'
+      : '<span class="tag tag-baidu">百度</span>';
+    const div = document.createElement('div');
+    div.innerHTML = `<span class="time">${t}</span>${tag}${msg}`;
+    logEl.prepend(div);
+  }
+
+  function clearSpeaking() {
+    document.querySelectorAll('.speaking').forEach(el => el.classList.remove('speaking'));
+  }
+
+  function speak(text, label, cardEl) {
+    // 停止之前的播放
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+    if (currentEngine === 'web') window.speechSynthesis.cancel();
+
+    clearSpeaking();
+    if (cardEl) cardEl.classList.add('speaking');
+
+    if (currentEngine === 'web') {
+      speakWeb(text, label, cardEl);
+    } else {
+      speakBaidu(text, label, cardEl);
+    }
+  }
+
+  // ===== Web Speech API =====
+  function speakWeb(text, label, cardEl) {
+    if (!('speechSynthesis' in window)) {
+      addLog('浏览器不支持 Web Speech API');
+      clearSpeaking();
+      return;
+    }
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'zh-CN';
+    u.rate = parseFloat(rateEl.value);
+    u.pitch = parseFloat(pitchEl.value);
+    u.onend = () => { if (cardEl) cardEl.classList.remove('speaking'); };
+    u.onerror = (e) => {
+      addLog(`错误: ${label} → "${text}" (${e.error})`);
+      if (cardEl) cardEl.classList.remove('speaking');
+    };
+    addLog(`${label} → "<b>${text}</b>" (rate=${u.rate}, pitch=${u.pitch})`);
+    window.speechSynthesis.speak(u);
+  }
+
+  // ===== 百度 TTS =====
+  function speakBaidu(text, label, cardEl) {
+    if (!baiduToken) {
+      addLog('百度 token 为空，请在代码中填入 token');
+      clearSpeaking();
+      return;
+    }
+
+    const spd = parseInt(rateEl.value);
+    const pit = parseInt(pitchEl.value);
+    const voiceName = BAIDU_VOICES.find(v => v.per === baiduPer)?.name || baiduPer;
+
+    // 构造百度 TTS 音频 URL（直接返回 mp3，无 CORS 问题）
+    const params = new URLSearchParams({
+      tex: text,
+      tok: baiduToken,
+      cuid: 'fun_kids_tts_test',
+      ctp: '1',
+      lan: 'zh',
+      spd: spd,
+      pit: pit,
+      vol: '15',
+      per: baiduPer,
+      aue: '3', // mp3
+    });
+    const audioUrl = `https://tsn.baidu.com/text2audio?${params.toString()}`;
+
+    addLog(`${label} → "<b>${text}</b>" (spd=${spd}, pit=${pit}, 音色=${voiceName})`);
+
+    const audio = new Audio(audioUrl);
+    currentAudio = audio;
+    audio.onended = () => { if (cardEl) cardEl.classList.remove('speaking'); currentAudio = null; };
+    audio.onerror = () => {
+      addLog(`错误: ${label} → "${text}" 播放失败，可能 token 过期`);
+      if (cardEl) cardEl.classList.remove('speaking');
+      currentAudio = null;
+      onTokenExpired();
+    };
+    audio.play().catch(e => {
+      addLog(`错误: ${label} → "${text}" (${e.message})`);
+      if (cardEl) cardEl.classList.remove('speaking');
+      currentAudio = null;
+    });
+  }
+
+  // ===== 渲染声母 =====
+  const initialsEl = document.getElementById('initials');
+  for (const [py, ch] of Object.entries(INITIAL_SOUND)) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `<div class="pinyin">${py}</div><div class="char">${ch}</div>`;
+    card.onclick = () => speak(ch, `声母 ${py}`, card);
+    initialsEl.appendChild(card);
+  }
+
+  // ===== 渲染韵母 =====
+  const finalsEl = document.getElementById('finals');
+  for (const [py, chars] of Object.entries(FINAL_SOUND)) {
+    const card = document.createElement('div');
+    card.className = 'final-card';
+
+    let toneHtml = '<div class="tone-row">';
+    for (let t = 0; t < 4; t++) {
+      toneHtml += `<div>
+        <button class="tone-btn" data-py="${py}" data-tone="${t}" data-char="${chars[t]}">${chars[t]}</button>
+        <div class="tone-label">${t + 1}声${TONE_MARKS[t]}</div>
+      </div>`;
+    }
+    toneHtml += '</div>';
+
+    card.innerHTML = `<div class="pinyin">${py}</div>${toneHtml}`;
+    finalsEl.appendChild(card);
+  }
+
+  // 韵母按钮事件（汉字版）
+  document.querySelectorAll('.tone-btn').forEach(btn => {
+    btn.onclick = () => {
+      const py = btn.dataset.py;
+      const tone = parseInt(btn.dataset.tone) + 1;
+      const ch = btn.dataset.char;
+      speak(ch, `韵母 ${py} 第${tone}声`, btn);
+    };
+  });
+
+  // ===== 渲染韵母拼音音调测试 =====
+  const pinyinTonesEl = document.getElementById('pinyinTones');
+  for (const [py, tones] of Object.entries(FINAL_PINYIN_TONE)) {
+    const card = document.createElement('div');
+    card.className = 'final-card';
+
+    let toneHtml = '<div class="tone-row">';
+    for (let t = 0; t < 4; t++) {
+      toneHtml += `<div>
+        <button class="tone-btn pinyin-tone-btn" data-py="${py}" data-tone="${t}" data-text="${tones[t]}">${tones[t]}</button>
+        <div class="tone-label">${t + 1}声${TONE_MARKS[t]}</div>
+      </div>`;
+    }
+    toneHtml += '</div>';
+
+    card.innerHTML = `<div class="pinyin">${py}</div>${toneHtml}`;
+    pinyinTonesEl.appendChild(card);
+  }
+
+  // 拼音音调按钮事件
+  document.querySelectorAll('.pinyin-tone-btn').forEach(btn => {
+    btn.onclick = () => {
+      const py = btn.dataset.py;
+      const tone = parseInt(btn.dataset.tone) + 1;
+      const text = btn.dataset.text;
+      speak(text, `拼音 ${py} 第${tone}声`, btn);
+    };
+  });
+</script>
+
+</body>
+</html>

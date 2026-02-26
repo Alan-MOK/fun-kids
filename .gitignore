@@ -1,0 +1,8 @@
+node_modules/
+data/fun-kids.db
+data/fun-kids.db-shm
+data/fun-kids.db-wal
+uploads/pinyin/*
+uploads/voice/*
+config.js
+.DS_Store

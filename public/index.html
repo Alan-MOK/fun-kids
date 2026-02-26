@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fun Kids - Site Map</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; padding: 40px; background: #FAFAFA; color: #333; }
+    h1 { font-size: 20px; color: #666; margin-bottom: 24px; }
+    .tree { font-size: 15px; line-height: 2; }
+    .tree ul { list-style: none; padding-left: 24px; }
+    .tree > ul { padding-left: 0; }
+    .folder { color: #999; }
+    .folder::before { content: "📁 "; }
+    .tree a { color: #1976D2; text-decoration: none; }
+    .tree a:hover { text-decoration: underline; }
+    .tree a::before { content: "📄 "; }
+    .desc { color: #AAA; font-size: 13px; margin-left: 8px; }
+  </style>
+</head>
+<body>
+  <h1>public/</h1>
+  <div class="tree">
+    <ul>
+      <li><span class="folder">app</span>
+        <ul>
+          <li><a href="/app/index.html">index.html</a><span class="desc">首页（课程选择）</span></li>
+          <li><a href="/app/pinyin.html">pinyin.html</a><span class="desc">拼音乐园</span></li>
+        </ul>
+      </li>
+      <li><span class="folder">admin</span>
+        <ul>
+          <li><a href="/admin/pinyin.html">pinyin.html</a><span class="desc">拼音数据管理</span></li>
+          <li><a href="/admin/voice-upload.html">voice-upload.html</a><span class="desc">录音上传管理</span></li>
+          <li><a href="/admin/voice-test.html">voice-test.html</a><span class="desc">录音测试</span></li>
+          <li><a href="/admin/tts-test.html">tts-test.html</a><span class="desc">TTS 语音测试</span></li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+</body>
+</html>

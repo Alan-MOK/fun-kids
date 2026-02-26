@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>拼音乐园 - Fun Kids</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(180deg, #FFF8E1 0%, #E8F5E9 50%, #E1F5FE 100%);
+      background-attachment: fixed;
+      overflow-x: hidden;
+    }
+
+    /* ===== 登录 ===== */
+    .login-overlay {
+      position: fixed; inset: 0;
+      background: linear-gradient(135deg, #FFE0B2 0%, #B3E5FC 100%);
+      display: flex; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .login-overlay.hidden { display: none; }
+    .login-box {
+      background: white; border-radius: 32px; padding: 48px 40px;
+      text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+      max-width: 400px; width: 90%; animation: bounceIn 0.6s;
+    }
+    .login-box h2 { font-size: 28px; font-weight: 900; color: #FF6F00; margin-bottom: 8px; }
+    .login-box p { color: #888; margin-bottom: 24px; }
+    .login-box input {
+      width: 100%; padding: 16px 20px; font-size: 20px;
+      border: 3px solid #E0E0E0; border-radius: 16px; outline: none;
+      text-align: center; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    }
+    .login-box input:focus { border-color: #FF9800; }
+    .login-box button {
+      width: 100%; padding: 16px; margin-top: 16px; font-size: 20px; font-weight: 700;
+      background: linear-gradient(135deg, #FF9800, #FF6F00); color: white;
+      border: none; border-radius: 16px; cursor: pointer; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    }
+    .login-box button:hover { transform: scale(1.03); }
+    .login-error { color: #F44336; margin-top: 12px; font-size: 14px; min-height: 20px; }
+
+    /* ===== 返回按钮 ===== */
+    .back-btn {
+      position: fixed; top: 16px; left: 16px; z-index: 50;
+      width: 44px; height: 44px; border-radius: 50%;
+      background: rgba(255,255,255,0.9); backdrop-filter: blur(10px);
+      display: flex; align-items: center; justify-content: center;
+      color: #FF6F00; text-decoration: none; font-size: 18px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+    }
+    .back-btn:hover { transform: scale(1.1); }
+
+    /* ===== 主内容 ===== */
+    .app-content { display: none; }
+    .app-content.visible { display: block; }
+    .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+
+    /* ===== 结果弹窗遮罩 ===== */
+    .result-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px; padding: 24px;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .result-overlay.visible { opacity: 1; pointer-events: auto; }
+    .result-overlay .close-btn {
+      position: absolute; top: 20px; right: 24px;
+      width: 44px; height: 44px; border-radius: 50%;
+      background: rgba(255,255,255,0.2); border: none; cursor: pointer;
+      color: white; font-size: 22px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s;
+    }
+    .result-overlay .close-btn:hover { background: rgba(255,255,255,0.35); }
+
+    /* ===== 结果展示区 ===== */
+    .result-card {
+      background: white; border-radius: 32px; padding: 40px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+      min-height: 280px; max-width: 500px; width: 90%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+      animation: bounceIn 0.4s;
+    }
+
+    /* 拼音专用字体：Latin字体优先，音调符号定位更精准 */
+    .pinyin-text {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    }
+
+    .result-pinyin {
+      font-size: 48px; font-weight: 900; color: #FF6F00;
+      margin-bottom: 12px; animation: fadeInUp 0.4s;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    }
+    .result-char {
+      font-size: 120px; font-weight: 900; line-height: 1.2;
+      margin-bottom: 8px; animation: fadeInUp 0.5s;
+    }
+    .result-char.gradient-text {
+      background: linear-gradient(135deg, #FF6F00, #E91E63, #9C27B0);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      text-shadow: none;
+    }
+    .result-meaning {
+      font-size: 20px; color: #666; margin-bottom: 16px; animation: fadeInUp 0.6s;
+    }
+    .result-image {
+      max-width: 280px; max-height: 280px; border-radius: 24px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1); margin-bottom: 16px; animation: fadeInUp 0.5s;
+    }
+    .result-emoji {
+      font-size: 120px; margin-bottom: 16px; animation: fadeInUp 0.5s;
+    }
+    .speak-btn {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: linear-gradient(135deg, #4CAF50, #2E7D32);
+      color: white; border: none; cursor: pointer; font-size: 24px;
+      box-shadow: 0 4px 16px rgba(76,175,80,0.3);
+      transition: transform 0.2s; animation: fadeInUp 0.7s;
+    }
+    .speak-btn:hover { transform: scale(1.1); }
+    .speak-btn:active { transform: scale(0.95); }
+
+    .result-error {
+      font-size: 20px; color: #FF9800; font-weight: 500;
+      animation: shake 0.5s;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    }
+    .result-error span { font-size: 48px; display: block; margin-bottom: 8px; }
+
+    /* 撒花效果 */
+    .confetti {
+      position: absolute; width: 10px; height: 10px; border-radius: 50%;
+      animation: confettiFall 1.5s ease-out forwards;
+      pointer-events: none;
+    }
+    @keyframes confettiFall {
+      0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+      100% { transform: translateY(200px) rotate(720deg) scale(0); opacity: 0; }
+    }
+
+    /* ===== 拼音拆解显示 ===== */
+    .pinyin-breakdown {
+      display: flex; align-items: center; justify-content: center;
+      gap: 10px; font-size: 28px; font-weight: 700; color: #666;
+      margin-bottom: 16px; animation: fadeInUp 0.3s;
+    }
+    .pinyin-breakdown .part { color: #FF6F00; font-size: 48px; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif; }
+    .pinyin-breakdown .symbol { color: #CCC; font-size: 32px; }
+    .pinyin-breakdown .equals { color: #CCC; font-size: 32px; }
+    .pinyin-breakdown .result-py { color: #FF6F00; font-size: 48px; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif; }
+
+    /* ===== 选择面板 ===== */
+    .panel {
+      background: white; border-radius: 24px; padding: 24px;
+      margin-bottom: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    }
+    .panel-title {
+      font-size: 16px; font-weight: 700; color: #999;
+      margin-bottom: 12px; padding-left: 4px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .panel-title i { font-size: 14px; }
+
+    .btn-grid {
+      display: flex; flex-wrap: wrap; gap: 8px;
+    }
+    .py-btn {
+      min-width: 60px; height: 60px; border-radius: 16px;
+      font-size: 22px; font-weight: 700; border: 3px solid #E0E0E0;
+      background: white; color: #333; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s; position: relative;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    }
+    .py-btn:hover { border-color: #FFB74D; background: #FFF8E1; transform: scale(1.05); }
+    .py-btn:active { transform: scale(0.95); }
+    .py-btn.selected {
+      border-color: #FF9800; background: #FF9800; color: white;
+      box-shadow: 0 4px 12px rgba(255,152,0,0.3);
+    }
+    .py-btn.disabled {
+      opacity: 0.2; cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    /* 声调按钮 */
+    .tone-btn {
+      min-width: 100px; padding: 0 16px;
+    }
+    .tone-btn.selected { background: #4CAF50; border-color: #4CAF50; color: white; box-shadow: 0 4px 12px rgba(76,175,80,0.3); }
+
+    /* 操作按钮 */
+    .action-bar {
+      display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: center; margin-bottom: 24px;
+    }
+    .action-btn {
+      padding: 16px 48px; border-radius: 20px; font-size: 22px; font-weight: 900;
+      border: none; cursor: pointer; transition: all 0.2s;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    }
+    .btn-combine {
+      background: linear-gradient(135deg, #FF9800, #FF5722);
+      color: white; box-shadow: 0 6px 20px rgba(255,87,34,0.3);
+    }
+    .btn-combine:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(255,87,34,0.4); }
+    .btn-combine:active { transform: translateY(0); }
+    .btn-clear {
+      background: #323232; color: #eee;
+    }
+    .btn-clear:hover {transform: translateY(-2px); background: #323232; }
+    .btn-random {
+      background: linear-gradient(135deg, #9C27B0, #E91E63);
+      color: white; box-shadow: 0 6px 20px rgba(156,39,176,0.3);
+    }
+    .btn-random:hover { transform: translateY(-2px); }
+
+    /* ===== 点读模式开关 ===== */
+    .read-aloud-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 20px; background: rgba(255,255,255,0.85); border-radius: 20px;
+      backdrop-filter: blur(6px);
+    }
+    .read-aloud-bar span { font-size: 15px; font-weight: 900; color: #666; }
+    .toggle-switch {
+      position: relative; width: 52px; height: 28px; cursor: pointer;
+    }
+    .toggle-switch input { display: none; }
+    .toggle-track {
+      position: absolute; inset: 0; background: #DDD; border-radius: 14px;
+      transition: background 0.25s;
+    }
+    .toggle-thumb {
+      position: absolute; top: 2px; left: 2px;
+      width: 24px; height: 24px; background: white; border-radius: 50%;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      transition: transform 0.25s;
+    }
+    .toggle-switch input:checked ~ .toggle-track { background: #4CAF50; }
+    .toggle-switch input:checked ~ .toggle-thumb { transform: translateX(24px); }
+
+    /* ===== 背景装饰 ===== */
+    .bg-decor { position: fixed; pointer-events: none; z-index: -1; }
+    .bg-decor.c1 { top: 8%; left: 3%; font-size: 50px; opacity: 0.12; animation: float 7s ease-in-out infinite; }
+    .bg-decor.c2 { top: 25%; right: 5%; font-size: 40px; opacity: 0.08; animation: float 9s ease-in-out infinite 2s; }
+    .bg-decor.s1 { bottom: 15%; right: 10%; font-size: 30px; opacity: 0.1; animation: twinkle 4s ease-in-out infinite; }
+    .bg-decor.s2 { bottom: 40%; left: 5%; font-size: 24px; opacity: 0.08; animation: twinkle 5s ease-in-out infinite 1.5s; }
+
+    @keyframes bounceIn { 0% { transform: scale(0.5); opacity: 0; } 60% { transform: scale(1.05); } 100% { transform: scale(1); opacity: 1; } }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes shake { 0%,100% { transform: translateX(0); } 20%,60% { transform: translateX(-5px); } 40%,80% { transform: translateX(5px); } }
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+    @keyframes twinkle { 0%,100% { opacity: 0.1; } 50% { opacity: 0.2; } }
+    @keyframes pop { 0% { transform: scale(0); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
+  </style>
+</head>
+<body>
+  <!-- 背景装饰 -->
+  <div class="bg-decor c1">☁️</div>
+  <div class="bg-decor c2">🌈</div>
+  <div class="bg-decor s1">⭐</div>
+  <div class="bg-decor s2">🌟</div>
+
+  <!-- 登录 -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-box">
+      <h2>🎵 拼音乐园</h2>
+      <p>请输入密码进入乐园</p>
+      <input type="password" id="loginPassword" placeholder="请输入密码" autofocus>
+      <button onclick="doLogin()">进入乐园 🚀</button>
+      <div class="login-error" id="loginError"></div>
+    </div>
+  </div>
+
+  <!-- 主界面 -->
+  <div class="app-content" id="appContent">
+    <a href="index.html" class="back-btn" title="返回"><i class="fas fa-arrow-left"></i></a>
+
+    <!-- 结果弹窗 -->
+    <div class="result-overlay" id="resultOverlay" onclick="closeResultOverlay(event)">
+      <button class="close-btn" onclick="closeResult()" title="关闭"><i class="fas fa-xmark"></i></button>
+      <div class="result-card" id="resultCard"></div>
+    </div>
+
+    <div class="container">
+      <!-- 声母 -->
+      <div class="panel">
+        <div class="panel-title"><i class="fas fa-music"></i> 声母</div>
+        <div class="btn-grid" id="initialGrid"></div>
+      </div>
+
+      <!-- 韵母 -->
+      <div class="panel">
+        <div class="panel-title"><i class="fas fa-star"></i> 韵母</div>
+        <div class="btn-grid" id="finalGrid"></div>
+      </div>
+
+      <!-- 声调 -->
+      <div class="panel">
+        <div class="panel-title"><i class="fas fa-wand-magic-sparkles"></i> 声调</div>
+        <div class="btn-grid" id="toneGrid"></div>
+      </div>
+
+      <!-- 操作按钮 -->
+      <div class="action-bar">
+        <button class="action-btn btn-combine" onclick="combine()">组合</button>
+        <button class="action-btn btn-clear" onclick="clearAll()">清除</button>
+        <button class="action-btn btn-random" onclick="randomPick()">试试手气</button>
+        <div class="read-aloud-bar">
+          <i class="fas fa-volume-high" style="color:#4CAF50;font-size:18px;"></i>
+          <span>点读</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="readAloudToggle" onchange="toggleReadAloud()">
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TOKEN_KEY = 'fun_kids_token';
+
+    // 声母表
+    const INITIALS = [
+      'b','p','m','f','d','t','n','l',
+      'g','k','h','j','q','x',
+      'zh','ch','sh','r','z','c','s',
+      'y','w'
+    ];
+
+    // 韵母表
+    const FINALS = [
+      'a','o','e','i','u','v',
+      'ai','ei','ui','ao','ou','iu',
+      'ie','ue','er',
+      'an','en','in','un','vn',
+      'ang','eng','ing','ong',
+      'ia','iao','ian','iang','iong',
+      'ua','uo','uai','uan','uang'
+    ];
+
+    // 韵母显示名（ü 替换 v）
+    const FINAL_DISPLAY = {
+      'v': 'ü', 'vn': 'ün', 'ue': 'üe'
+    };
+
+    // 声调
+    const TONES = [
+      { value: 1, label: 'ˉ 一声' },
+      { value: 2, label: 'ˊ 二声' },
+      { value: 3, label: 'ˇ 三声' },
+      { value: 4, label: 'ˋ 四声' },
+    ];
+
+    // 声母-韵母兼容规则 【原版】
+    // const INITIAL_FINAL_RULES = {
+    //   'j': ['i','ia','ian','iang','iao','ie','in','ing','iong','iu','v','ue','vn'],
+    //   'q': ['i','ia','ian','iang','iao','ie','in','ing','iong','iu','v','ue','vn'],
+    //   'x': ['i','ia','ian','iang','iao','ie','in','ing','iong','iu','v','ue','vn'],
+    //   'zh': ['a','ai','an','ang','ao','e','en','eng','i','ong','ou','u','ua','uai','uan','uang','ui','un','uo'],
+    //   'ch': ['a','ai','an','ang','ao','e','en','eng','i','ong','ou','u','ua','uai','uan','uang','ui','un','uo'],
+    //   'sh': ['a','ai','an','ang','ao','e','en','eng','i','ou','u','ua','uai','uan','uang','ui','un','uo'],
+    //   'r': ['an','ang','e','en','eng','i','ong','ou','u','uan','ui','un','uo'],
+    //   'z': ['a','ai','an','ang','ao','e','ei','en','eng','i','ong','ou','u','uan','ui','un','uo'],
+    //   'c': ['a','ai','an','ang','ao','e','en','eng','i','ong','ou','u','uan','ui','un','uo'],
+    //   's': ['a','ai','an','ang','ao','e','en','eng','i','ong','ou','u','uan','ui','un','uo'],
+    // };
+
+
+//   // 声母-韵母兼容规则 【优化版，剔除极少使用的拼音组合】
+  const INITIAL_FINAL_RULES = {
+  // 双唇音
+  'b': ['a', 'ai', 'an', 'ang', 'ao', 'ei', 'en', 'eng', 'i', 'ian', 'iao', 'ie', 'in', 'ing', 'o', 'u'],
+  'p': ['a', 'ai', 'an', 'ang', 'ao', 'ei', 'en', 'eng', 'i', 'ian', 'iao', 'ie', 'in', 'ing', 'o', 'u'],
+  'm': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'ei', 'en', 'eng', 'i', 'ian', 'iao', 'ie', 'in', 'ing', 'iu', 'o', 'ou', 'u'],
+
+  // 唇齿音
+  'f': ['a', 'an', 'ang', 'ei', 'en', 'eng', 'o', 'ou', 'u'],
+
+  // 舌尖中音
+  'd': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'ei', 'en', 'eng', 'i', 'ia', 'ian', 'iao', 'ie', 'ing', 'iu', 'ong', 'ou', 'u', 'uan', 'ui', 'un', 'uo'],
+  't': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'ei', 'eng', 'i', 'ian', 'iao', 'ie', 'ing', 'ong', 'ou', 'u', 'uan', 'ui', 'un', 'uo'],
+  'n': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'ei', 'en', 'eng', 'i', 'ian', 'iang', 'iao', 'ie', 'in', 'ing', 'iu', 'ong', 'ou', 'u', 'uan', 'uo', 'v', 've'],
+  'l': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'ei', 'eng', 'i', 'ia', 'ian', 'iang', 'iao', 'ie', 'in', 'ing', 'iu', 'ong', 'ou', 'u', 'uan', 'un', 'uo', 'v', 've'],
+
+  // 舌根音
+  'g': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'ei', 'en', 'eng', 'ong', 'ou', 'u', 'ua', 'uai', 'uan', 'uang', 'ui', 'un', 'uo'],
+  'k': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'ei', 'en', 'eng', 'ong', 'ou', 'u', 'ua', 'uai', 'uan', 'uang', 'ui', 'un', 'uo'],
+  'h': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'ei', 'en', 'eng', 'ong', 'ou', 'u', 'ua', 'uai', 'uan', 'uang', 'ui', 'un', 'uo'],
+
+  // 舌面音
+  'j': ['i', 'ia', 'ian', 'iang', 'iao', 'ie', 'in', 'ing', 'iong', 'iu', 'v', 'ue', 'vn'],
+  'q': ['i', 'ia', 'ian', 'iang', 'iao', 'ie', 'in', 'ing', 'iong', 'iu', 'v', 'ue', 'vn'],
+  'x': ['i', 'ia', 'ian', 'iang', 'iao', 'ie', 'in', 'ing', 'iong', 'iu', 'v', 'ue', 'vn'],
+
+  // 舌尖后音
+  'zh': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'en', 'eng', 'i', 'ong', 'ou', 'u', 'ua', 'uai', 'uan', 'uang', 'ui', 'un', 'uo'],
+  'ch': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'en', 'eng', 'i', 'ong', 'ou', 'u', 'ua', 'uai', 'uan', 'uang', 'ui', 'un', 'uo'],
+  'sh': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'en', 'eng', 'i', 'ou', 'u', 'ua', 'uai', 'uan', 'uang', 'ui', 'un', 'uo'],
+  'r': ['an', 'ang', 'ao', 'e', 'en', 'eng', 'i', 'ong', 'ou', 'u', 'uan', 'ui', 'un', 'uo'],
+
+  // 舌尖前音
+  'z': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'ei', 'en', 'eng', 'i', 'ong', 'ou', 'u', 'uan', 'ui', 'un', 'uo'],
+  'c': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'en', 'eng', 'i', 'ong', 'ou', 'u', 'uan', 'ui', 'un', 'uo'],
+  's': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'en', 'eng', 'i', 'ong', 'ou', 'u', 'uan', 'ui', 'un', 'uo']
+};
+
+
+
+    let selectedInitial = null;
+    let selectedFinal = null;
+    let selectedTone = null;
+    let currentItem = null;
+    let readAloudMode = false;
+
+    // 韵母内部名 → 音频文件名映射（v→ü）
+    const FINAL_FILENAME = { 'v': 'ü', 'vn': 'ün', 'ue': 'üe' };
+    function finalToFilename(f) { return FINAL_FILENAME[f] || f; }
+
+    function toggleReadAloud() {
+      readAloudMode = document.getElementById('readAloudToggle').checked;
+      if (readAloudMode && selectedTone === null) {
+        selectedTone = 1;
+        const toneBtn = document.querySelector('[data-tone="1"]');
+        if (toneBtn) toneBtn.classList.add('selected');
+      }
+    }
+
+    // 初始化按钮
+    function init() {
+      // 声母
+      const ig = document.getElementById('initialGrid');
+      // 添加零声母按钮
+      ig.innerHTML = `<button class="py-btn" data-initial="" onclick="selectInitial(this, '')">∅</button>`;
+      ig.innerHTML += INITIALS.map(i =>
+        `<button class="py-btn" data-initial="${i}" onclick="selectInitial(this, '${i}')">${i}</button>`
+      ).join('');
+
+      // 韵母
+      const fg = document.getElementById('finalGrid');
+      fg.innerHTML = FINALS.map(f => {
+        const display = FINAL_DISPLAY[f] || f;
+        return `<button class="py-btn" data-final="${f}" onclick="selectFinal(this, '${f}')">${display}</button>`;
+      }).join('');
+
+      // 声调
+      const tg = document.getElementById('toneGrid');
+      tg.innerHTML = TONES.map(t =>
+        `<button class="py-btn tone-btn" data-tone="${t.value}" onclick="selectTone(this, ${t.value})">${t.label}</button>`
+      ).join('');
+    }
+
+    function selectInitial(el, val) {
+      document.querySelectorAll('[data-initial]').forEach(b => b.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedInitial = val;
+      updateFinalAvailability();
+      if (readAloudMode && val) {
+        playVoiceFile(`initial-${val}.mp3`);
+      }
+    }
+
+    function selectFinal(el, val) {
+      document.querySelectorAll('[data-final]').forEach(b => b.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedFinal = val;
+      if (readAloudMode && selectedTone !== null) {
+        playVoiceFile(`final-${finalToFilename(val)}-${selectedTone}.mp3`);
+      }
+    }
+
+    function selectTone(el, val) {
+      document.querySelectorAll('[data-tone]').forEach(b => b.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedTone = val;
+      if (readAloudMode && selectedFinal !== null) {
+        playVoiceFile(`final-${finalToFilename(selectedFinal)}-${val}.mp3`);
+      }
+    }
+
+    function updateFinalAvailability() {
+      document.querySelectorAll('[data-final]').forEach(btn => {
+        btn.classList.remove('disabled');
+      });
+
+      if (selectedInitial !== null && INITIAL_FINAL_RULES[selectedInitial]) {
+        const allowed = INITIAL_FINAL_RULES[selectedInitial];
+        document.querySelectorAll('[data-final]').forEach(btn => {
+          const f = btn.dataset.final;
+          if (!allowed.includes(f)) {
+            btn.classList.add('disabled');
+            if (selectedFinal === f) {
+              selectedFinal = null;
+              btn.classList.remove('selected');
+        
+            }
+          }
+        });
+      }
+    }
+
+    function clearAll() {
+      selectedInitial = null;
+      selectedFinal = null;
+      selectedTone = null;
+      document.querySelectorAll('.py-btn').forEach(b => {
+        b.classList.remove('selected');
+        b.classList.remove('disabled');
+      });
+
+    }
+
+    function openResult() {
+      document.getElementById('resultOverlay').classList.add('visible');
+    }
+    function closeResult() {
+      document.getElementById('resultOverlay').classList.remove('visible');
+      if (currentTTSAudio) { currentTTSAudio.pause(); currentTTSAudio = null; }
+    }
+    function closeResultOverlay(e) {
+      if (e.target === document.getElementById('resultOverlay')) closeResult();
+    }
+
+    // 声调标注
+    const toneMap = {
+      'a': ['ā','á','ǎ','à'], 'o': ['ō','ó','ǒ','ò'], 'e': ['ē','é','ě','è'],
+      'i': ['ī','í','ǐ','ì'], 'u': ['ū','ú','ǔ','ù'], 'v': ['ǖ','ǘ','ǚ','ǜ'],
+    };
+    function addTone(finalStr, tone) {
+      const priority = ['a','o','e','i','u','v'];
+      for (const ch of priority) {
+        if (finalStr.includes(ch)) {
+          if (ch === 'i' && finalStr.includes('u') && finalStr.indexOf('u') > finalStr.indexOf('i')) {
+            return finalStr.replace('u', toneMap['u'][tone - 1]);
+          }
+          if (ch === 'u' && finalStr.includes('i') && finalStr.indexOf('i') > finalStr.indexOf('u')) {
+            return finalStr.replace('i', toneMap['i'][tone - 1]);
+          }
+          return finalStr.replace(ch, (toneMap[ch] || [ch,ch,ch,ch])[tone - 1]);
+        }
+      }
+      return finalStr;
+    }
+
+    // 组合查询
+    async function combine() {
+      if (selectedFinal === null) {
+        showError('请先选择韵母哦~');
+        return;
+      }
+      if (selectedTone === null) {
+        showError('请先选择声调哦~');
+        return;
+      }
+
+      const initial = selectedInitial !== null ? selectedInitial : '';
+      const params = new URLSearchParams({
+        initial, final: selectedFinal, tone: selectedTone
+      });
+
+      try {
+        const res = await fetch(`/api/pinyin?${params}`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem(TOKEN_KEY)}` }
+        });
+        if (res.status === 401) { localStorage.clear(); location.reload(); return; }
+        const data = await res.json();
+
+        if (data.length > 0) {
+          showResult(data[0]);
+        } else {
+          const pinyinStr = initial + addTone(selectedFinal, selectedTone);
+          showError(`"${pinyinStr}" 这个组合暂时没有对应的字哦，换一个试试吧！`);
+        }
+      } catch {
+        showError('网络开小差了，再试试吧~');
+      }
+    }
+
+    function buildBreakdown(item) {
+      const ini = item.initial || '';
+      const fin = (FINAL_DISPLAY[item.final] || item.final);
+      const toneLabel = ['ˉ','ˊ','ˇ','ˋ'][item.tone - 1];
+      const parts = [];
+      if (ini) parts.push(`<span class="part">${ini}</span>`);
+      if (ini) parts.push(`<span class="symbol">+</span>`);
+      parts.push(`<span class="part">${fin}</span>`);
+      parts.push(`<span class="symbol">+</span>`);
+      parts.push(`<span class="part">${toneLabel}</span>`);
+      parts.push(`<span class="equals">=</span>`);
+      parts.push(`<span class="result-py">${item.pinyin}</span>`);
+      return `<div class="pinyin-breakdown">${parts.join('')}</div>`;
+    }
+
+    function showResult(item) {
+      currentItem = item;
+      const card = document.getElementById('resultCard');
+      let imageHtml = '';
+
+      if (item.image) {
+        imageHtml = `<img class="result-image" src="/uploads/pinyin/${item.image}" alt="${item.char}">`;
+      } else if (item.emoji) {
+        imageHtml = `<div class="result-emoji">${item.emoji}</div>`;
+      }
+
+      card.innerHTML = `
+        ${buildBreakdown(item)}
+        ${imageHtml}
+        <div class="result-char gradient-text">${item.char}</div>
+        <div class="result-meaning">${item.meaning || ''}</div>
+        <button class="speak-btn" onclick="speakFull()" title="朗读">
+          <i class="fas fa-volume-high"></i>
+        </button>
+      `;
+      openResult();
+
+      // 撒花效果
+      spawnConfetti(card);
+
+      // 自动朗读
+      setTimeout(() => speakFull(), 500);
+    }
+
+    function showError(msg) {
+      document.getElementById('resultCard').innerHTML = `
+        <div class="result-error">
+          <span>🤔</span>
+          ${msg}
+        </div>
+      `;
+      openResult();
+    }
+
+    // 播放 MP3 录音，返回 Promise
+    function playVoiceFile(filename) {
+      return new Promise((resolve) => {
+        const audio = new Audio(`/voice/${filename}`);
+        audio.onended = resolve;
+        audio.onerror = resolve; // 播放失败时跳过，不阻塞
+        audio.play().catch(resolve);
+      });
+    }
+
+    // 百度 TTS 配置（从服务端获取）
+    let BAIDU_TOKEN = '';
+    let BAIDU_PER = 3;
+    let currentTTSAudio = null;
+
+    fetch('/api/config/tts').then(r => r.json()).then(c => {
+      BAIDU_TOKEN = c.token;
+      BAIDU_PER = c.per;
+    }).catch(() => {});
+
+    // TTS 朗读单段文字，返回 Promise（百度 TTS）
+    function speakTTS(text) {
+      return new Promise((resolve) => {
+        if (currentTTSAudio) {
+          currentTTSAudio.pause();
+          currentTTSAudio = null;
+        }
+        const params = new URLSearchParams({
+          tex: text,
+          tok: BAIDU_TOKEN,
+          cuid: 'fun_kids_pinyin',
+          ctp: '1',
+          lan: 'zh',
+          spd: '5',
+          pit: '5',
+          vol: '15',
+          per: BAIDU_PER,
+          aue: '3',
+        });
+        const audio = new Audio(`https://tsn.baidu.com/text2audio?${params.toString()}`);
+        currentTTSAudio = audio;
+        audio.onended = () => { currentTTSAudio = null; resolve(); };
+        audio.onerror = () => { currentTTSAudio = null; resolve(); };
+        audio.play().catch(() => { currentTTSAudio = null; resolve(); });
+      });
+    }
+
+    // 朗读（完整版：字 → 声母录音 → 韵母代表字 → 字 → 意思）
+    async function speakFull() {
+      if (!currentItem) return;
+      if (currentTTSAudio) { currentTTSAudio.pause(); currentTTSAudio = null; }
+
+      const item = currentItem;
+
+      // 1. 朗读汉字
+      await speakTTS(item.char);
+      await new Promise(r => setTimeout(r, 500));
+
+      // 2. 声母：使用 MP3 录音
+      if (item.initial) {
+        await playVoiceFile(`initial-${item.initial}.mp3`);
+        await new Promise(r => setTimeout(r, 500));
+      }
+
+      // 3. 韵母：使用 MP3 录音
+      await playVoiceFile(`final-${finalToFilename(item.final)}-${item.tone}.mp3`);
+      await new Promise(r => setTimeout(r, 500));
+
+      // 4. 再次朗读汉字
+      await speakTTS(item.char);
+
+      // 5. 朗读意思
+      if (item.meaning) {
+        await new Promise(r => setTimeout(r, 500));
+        await speakTTS(item.meaning);
+      }
+    }
+
+    // 撒花
+    function spawnConfetti(container) {
+      const colors = ['#FF6F00','#E91E63','#9C27B0','#4CAF50','#2196F3','#FFEB3B'];
+      for (let i = 0; i < 20; i++) {
+        const el = document.createElement('div');
+        el.className = 'confetti';
+        el.style.background = colors[Math.floor(Math.random() * colors.length)];
+        el.style.left = Math.random() * 100 + '%';
+        el.style.top = Math.random() * 30 + '%';
+        el.style.animationDelay = Math.random() * 0.5 + 's';
+        el.style.width = el.style.height = (6 + Math.random() * 8) + 'px';
+        container.appendChild(el);
+        setTimeout(() => el.remove(), 2000);
+      }
+    }
+
+    // 随机推荐
+    async function randomPick() {
+      try {
+        const res = await fetch('/api/pinyin', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem(TOKEN_KEY)}` }
+        });
+        const data = await res.json();
+        if (data.length > 0) {
+          const item = data[Math.floor(Math.random() * data.length)];
+          // 设置选择状态
+          selectedInitial = item.initial;
+          selectedFinal = item.final;
+          selectedTone = item.tone;
+
+          // 更新按钮状态
+          document.querySelectorAll('.py-btn').forEach(b => b.classList.remove('selected', 'disabled'));
+          const initBtn = document.querySelector(`[data-initial="${item.initial}"]`);
+          if (initBtn) initBtn.classList.add('selected');
+          const finBtn = document.querySelector(`[data-final="${item.final}"]`);
+          if (finBtn) finBtn.classList.add('selected');
+          const toneBtn = document.querySelector(`[data-tone="${item.tone}"]`);
+          if (toneBtn) toneBtn.classList.add('selected');
+
+    
+          updateFinalAvailability();
+          showResult(item);
+        }
+      } catch {}
+    }
+
+    // 登录
+    async function doLogin() {
+      const pw = document.getElementById('loginPassword').value.trim();
+      const err = document.getElementById('loginError');
+      if (!pw) { err.textContent = '请输入密码哦~'; return; }
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pw, role: 'user' }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          localStorage.setItem(TOKEN_KEY, data.token);
+          document.getElementById('loginOverlay').classList.add('hidden');
+          document.getElementById('appContent').classList.add('visible');
+        } else { err.textContent = data.error || '密码错误哦~'; }
+      } catch { err.textContent = '网络错误，请稍后再试'; }
+    }
+    document.getElementById('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+    function checkAuth() {
+      if (localStorage.getItem(TOKEN_KEY)) {
+        document.getElementById('loginOverlay').classList.add('hidden');
+        document.getElementById('appContent').classList.add('visible');
+      }
+    }
+
+    checkAuth();
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>声母韵母录音测试 - Fun Kids</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 { text-align: center; margin-bottom: 4px; font-size: 24px; }
+    .subtitle { text-align: center; font-size: 13px; color: #999; margin-bottom: 16px; }
+    .stats-bar {
+      text-align: center; font-size: 13px; color: #555;
+      background: white; border-radius: 8px; padding: 8px 16px;
+      margin-bottom: 16px; border: 1px solid #e0e0e0;
+    }
+    .stats-bar .ok { color: #2E7D32; font-weight: bold; }
+    .stats-bar .miss { color: #F44336; }
+
+    h2 {
+      margin: 20px 0 12px;
+      font-size: 18px;
+      color: #333;
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 6px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 12px 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .card:hover { border-color: #42A5F5; background: #E3F2FD; }
+    .card:active { transform: scale(0.95); }
+    .card.disabled { opacity: 0.35; cursor: default; }
+    .card.disabled:hover { border-color: #e0e0e0; background: white; }
+    .card.disabled:active { transform: none; }
+    .card.playing { border-color: #FF9800; background: #FFF3E0; animation: pulse 0.6s infinite alternate; }
+    @keyframes pulse { to { box-shadow: 0 0 12px rgba(255,152,0,0.4); } }
+    .card .pinyin { font-size: 20px; font-weight: bold; color: #1565C0; }
+    .card.disabled .pinyin { color: #bbb; }
+
+    .finals-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .final-card {
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+    }
+    .final-card .pinyin { font-size: 18px; font-weight: bold; color: #2E7D32; margin-bottom: 6px; }
+    .tone-row { display: flex; gap: 4px; justify-content: center; }
+    .tone-btn {
+      width: 36px; height: 36px;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      background: #fafafa;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #333;
+    }
+    .tone-btn:hover { border-color: #66BB6A; background: #E8F5E9; }
+    .tone-btn:active { transform: scale(0.9); }
+    .tone-btn.disabled { opacity: 0.3; cursor: default; color: #bbb; }
+    .tone-btn.disabled:hover { border-color: #ddd; background: #fafafa; }
+    .tone-btn.disabled:active { transform: none; }
+    .tone-btn.playing { border-color: #FF9800; background: #FFF3E0; }
+    .tone-label { font-size: 10px; color: #999; margin-top: 2px; text-align: center; }
+
+    .admin-link {
+      text-align: center; margin-top: 24px;
+    }
+    .admin-link a {
+      font-size: 13px; color: #1976D2; text-decoration: none;
+      padding: 6px 14px; border: 1px solid #BBDEFB; border-radius: 6px;
+    }
+    .admin-link a:hover { background: #E3F2FD; }
+  </style>
+</head>
+<body>
+
+<h1>声母 / 韵母 录音测试</h1>
+<p class="subtitle">播放已上传的 MP3 录音（灰色 = 未上传）</p>
+
+<div class="stats-bar" id="statsBar">加载中...</div>
+
+<h2>声母（23个）</h2>
+<div class="grid" id="initials"></div>
+
+<h2>韵母（四声）</h2>
+<div class="finals-grid" id="finals"></div>
+
+<div class="admin-link">
+  <a href="voice-upload.html">前往上传管理</a>
+</div>
+
+<script>
+  const INITIALS = ['b','p','m','f','d','t','n','l','g','k','h','j','q','x','zh','ch','sh','r','z','c','s','y','w'];
+  const FINALS = ['a','o','e','i','u','ü','ai','ei','ui','ao','ou','iu','ie','üe','er','an','en','in','un','ün','ang','eng','ing','ong','ia','iao','ian','iang','iong','ua','uo','uai','uan','uang'];
+  const TONE_MARKS = ['ˉ', 'ˊ', 'ˇ', 'ˋ'];
+
+  let uploadedFiles = new Set();
+  let currentAudio = null;
+
+  function filenameForInitial(py) { return `initial-${py}.mp3`; }
+  function filenameForFinal(py, tone) { return `final-${py}-${tone}.mp3`; }
+
+  // 加载文件列表
+  async function loadFiles() {
+    try {
+      const resp = await fetch('/api/voice');
+      const files = await resp.json();
+      uploadedFiles = new Set(files);
+    } catch { console.error('加载失败'); }
+    render();
+  }
+
+  function play(filename, el) {
+    if (!uploadedFiles.has(filename)) return;
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+
+    document.querySelectorAll('.playing').forEach(e => e.classList.remove('playing'));
+    if (el) el.classList.add('playing');
+
+    currentAudio = new Audio(`/voice/${filename}`);
+    currentAudio.onended = () => { if (el) el.classList.remove('playing'); currentAudio = null; };
+    currentAudio.onerror = () => { if (el) el.classList.remove('playing'); currentAudio = null; };
+    currentAudio.play().catch(() => { if (el) el.classList.remove('playing'); });
+  }
+
+  function render() {
+    // 声母
+    const initialsEl = document.getElementById('initials');
+    initialsEl.innerHTML = '';
+    let initialOk = 0;
+    INITIALS.forEach(py => {
+      const fn = filenameForInitial(py);
+      const has = uploadedFiles.has(fn);
+      if (has) initialOk++;
+      const card = document.createElement('div');
+      card.className = 'card' + (has ? '' : ' disabled');
+      card.innerHTML = `<div class="pinyin">${py}</div>`;
+      if (has) card.onclick = () => play(fn, card);
+      initialsEl.appendChild(card);
+    });
+
+    // 韵母
+    const finalsEl = document.getElementById('finals');
+    finalsEl.innerHTML = '';
+    let finalTotal = 0, finalOk = 0;
+    FINALS.forEach(py => {
+      const card = document.createElement('div');
+      card.className = 'final-card';
+      let toneHtml = '<div class="tone-row">';
+      for (let t = 1; t <= 4; t++) {
+        finalTotal++;
+        const fn = filenameForFinal(py, t);
+        const has = uploadedFiles.has(fn);
+        if (has) finalOk++;
+        const id = `btn-${py}-${t}`;
+        toneHtml += `<div>
+          <button class="tone-btn ${has ? '' : 'disabled'}" id="${id}" data-fn="${fn}" data-has="${has}">${t}</button>
+          <div class="tone-label">${t}声${TONE_MARKS[t-1]}</div>
+        </div>`;
+      }
+      toneHtml += '</div>';
+      card.innerHTML = `<div class="pinyin">${py}</div>${toneHtml}`;
+      finalsEl.appendChild(card);
+    });
+
+    // 韵母按钮事件
+    document.querySelectorAll('.tone-btn').forEach(btn => {
+      if (btn.dataset.has === 'true') {
+        btn.onclick = () => play(btn.dataset.fn, btn);
+      }
+    });
+
+    // 统计
+    document.getElementById('statsBar').innerHTML =
+      `声母 <span class="${initialOk === INITIALS.length ? 'ok' : 'miss'}">${initialOk}/${INITIALS.length}</span>` +
+      ` · 韵母 <span class="${finalOk === finalTotal ? 'ok' : 'miss'}">${finalOk}/${finalTotal}</span>` +
+      (finalOk + initialOk < finalTotal + INITIALS.length ? ` · <span class="miss">缺少 ${(INITIALS.length - initialOk) + (finalTotal - finalOk)} 个录音</span>` : ' · <span class="ok">全部就绪</span>');
+  }
+
+  loadFiles();
+</script>
+</body>
+</html>

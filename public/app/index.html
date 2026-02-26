@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fun Kids - 快乐学习乐园</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #FFF8E1 0%, #E1F5FE 50%, #F3E5F5 100%);
+      overflow-x: hidden;
+    }
+
+    /* ===== 登录界面 ===== */
+    .login-overlay {
+      position: fixed; inset: 0;
+      background: linear-gradient(135deg, #FFE0B2 0%, #B3E5FC 100%);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000;
+    }
+    .login-overlay.hidden { display: none; }
+    .login-box {
+      background: white;
+      border-radius: 32px;
+      padding: 48px 40px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+      max-width: 400px;
+      width: 90%;
+      animation: bounceIn 0.6s;
+    }
+    .login-box h2 {
+      font-size: 28px;
+      font-weight: 900;
+      color: #FF6F00;
+      margin-bottom: 8px;
+    }
+    .login-box p {
+      color: #888;
+      margin-bottom: 24px;
+      font-size: 16px;
+    }
+    .login-box input {
+      width: 100%;
+      padding: 16px 20px;
+      font-size: 20px;
+      border: 3px solid #E0E0E0;
+      border-radius: 16px;
+      outline: none;
+      text-align: center;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+      transition: border-color 0.3s;
+    }
+    .login-box input:focus { border-color: #FF9800; }
+    .login-box button {
+      width: 100%;
+      padding: 16px;
+      margin-top: 16px;
+      font-size: 20px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #FF9800, #FF6F00);
+      color: white;
+      border: none;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: transform 0.2s;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    }
+    .login-box button:hover { transform: scale(1.03); }
+    .login-box button:active { transform: scale(0.97); }
+    .login-error {
+      color: #F44336;
+      margin-top: 12px;
+      font-size: 14px;
+      min-height: 20px;
+    }
+
+    /* ===== 主页面 ===== */
+    .main-page { padding: 40px 20px; max-width: 1000px; margin: 0 auto; }
+    .main-page.hidden { display: none; }
+
+    .page-title {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .page-title h1 {
+      font-size: 48px;
+      font-weight: 900;
+      background: linear-gradient(135deg, #FF6F00, #E91E63, #9C27B0);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .page-title p {
+      font-size: 20px;
+      color: #666;
+      margin-top: 8px;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 24px;
+      padding: 0 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 24px;
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.3s, box-shadow 0.3s;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+      position: relative;
+      overflow: hidden;
+    }
+    .card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.15);
+    }
+    .card:active { transform: translateY(-4px) scale(0.98); }
+
+    .card-icon {
+      width: 80px; height: 80px;
+      border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 36px;
+      color: white;
+    }
+    .card-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .card-desc {
+      font-size: 14px;
+      color: #999;
+    }
+    .card-badge {
+      position: absolute;
+      top: 16px; right: 16px;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      color: white;
+    }
+
+    .card-pinyin .card-icon { background: linear-gradient(135deg, #FF9800, #FF5722); }
+    .card-pinyin .card-title { color: #E65100; }
+    .card-pinyin .card-badge { background: #4CAF50; }
+
+    .card-poem .card-icon { background: linear-gradient(135deg, #66BB6A, #2E7D32); }
+    .card-poem .card-title { color: #2E7D32; }
+    .card-poem .card-badge { background: #9E9E9E; }
+
+    .card-hanzi .card-icon { background: linear-gradient(135deg, #42A5F5, #1565C0); }
+    .card-hanzi .card-title { color: #1565C0; }
+    .card-hanzi .card-badge { background: #9E9E9E; }
+
+    .card-slogan .card-icon { background: linear-gradient(135deg, #EF5350, #C62828); }
+    .card-slogan .card-title { color: #C62828; }
+    .card-slogan .card-badge { background: #9E9E9E; }
+
+    .card.disabled { opacity: 0.6; cursor: not-allowed; }
+    .card.disabled:hover { transform: none; box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+
+    .footer {
+      text-align: center;
+      margin-top: 60px;
+      color: #BBB;
+      font-size: 14px;
+    }
+
+    /* ===== 背景装饰 ===== */
+    .bg-decor {
+      position: fixed;
+      pointer-events: none;
+      z-index: -1;
+    }
+    .bg-decor.cloud1 { top: 10%; left: 5%; font-size: 60px; opacity: 0.15; animation: float 6s ease-in-out infinite; }
+    .bg-decor.cloud2 { top: 30%; right: 8%; font-size: 48px; opacity: 0.1; animation: float 8s ease-in-out infinite 2s; }
+    .bg-decor.star1 { bottom: 20%; left: 10%; font-size: 36px; opacity: 0.12; animation: twinkle 3s ease-in-out infinite; }
+    .bg-decor.star2 { top: 15%; right: 20%; font-size: 28px; opacity: 0.1; animation: twinkle 4s ease-in-out infinite 1s; }
+
+    @keyframes bounceIn {
+      0% { transform: scale(0.5); opacity: 0; }
+      60% { transform: scale(1.05); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-15px); }
+    }
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.12; }
+      50% { opacity: 0.25; }
+    }
+  </style>
+</head>
+<body>
+  <!-- 背景装饰 -->
+  <div class="bg-decor cloud1">☁️</div>
+  <div class="bg-decor cloud2">☁️</div>
+  <div class="bg-decor star1">⭐</div>
+  <div class="bg-decor star2">🌟</div>
+
+  <!-- 登录界面 -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-box">
+      <h2>🎉 快乐学习乐园</h2>
+      <p>请输入密码进入乐园</p>
+      <input type="password" id="loginPassword" placeholder="请输入密码" autofocus>
+      <button id="loginBtn" onclick="doLogin()">进入乐园 🚀</button>
+      <div class="login-error" id="loginError"></div>
+    </div>
+  </div>
+
+  <!-- 主页面 -->
+  <div class="main-page hidden" id="mainPage">
+    <div class="page-title">
+      <h1>快乐学习乐园</h1>
+      <p>选择你想学的内容吧！</p>
+    </div>
+
+    <div class="cards-grid">
+      <div class="card card-pinyin" onclick="location.href='pinyin.html'">
+        <div class="card-badge">可以玩啦</div>
+        <div class="card-icon"><i class="fas fa-spell-check"></i></div>
+        <div class="card-title">拼音</div>
+        <div class="card-desc">学习声母韵母，拼出好玩的字！</div>
+      </div>
+
+      <div class="card card-poem disabled">
+        <div class="card-badge">即将开放</div>
+        <div class="card-icon"><i class="fas fa-feather"></i></div>
+        <div class="card-title">古诗词</div>
+        <div class="card-desc">朗读优美的古诗词</div>
+      </div>
+
+      <div class="card card-hanzi disabled">
+        <div class="card-badge">即将开放</div>
+        <div class="card-icon"><i class="fas fa-pen-nib"></i></div>
+        <div class="card-title">汉字</div>
+        <div class="card-desc">认识有趣的汉字</div>
+      </div>
+
+      <div class="card card-slogan disabled">
+        <div class="card-badge">即将开放</div>
+        <div class="card-icon"><i class="fas fa-signs-post"></i></div>
+        <div class="card-title">社会标语</div>
+        <div class="card-desc">认识生活中的标语</div>
+      </div>
+    </div>
+
+    <div class="footer">Fun Kids - 为小朋友打造的学习乐园</div>
+  </div>
+
+  <script>
+    const TOKEN_KEY = 'fun_kids_token';
+    const ROLE_KEY = 'fun_kids_role';
+
+    // 检查登录状态
+    function checkAuth() {
+      const token = localStorage.getItem(TOKEN_KEY);
+      if (token) {
+        document.getElementById('loginOverlay').classList.add('hidden');
+        document.getElementById('mainPage').classList.remove('hidden');
+      }
+    }
+
+    // 登录
+    async function doLogin() {
+      const password = document.getElementById('loginPassword').value.trim();
+      const errorEl = document.getElementById('loginError');
+      if (!password) { errorEl.textContent = '请输入密码哦~'; return; }
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password, role: 'user' }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          localStorage.setItem(TOKEN_KEY, data.token);
+          localStorage.setItem(ROLE_KEY, data.role);
+          document.getElementById('loginOverlay').classList.add('hidden');
+          document.getElementById('mainPage').classList.remove('hidden');
+        } else {
+          errorEl.textContent = data.error || '密码错误哦~';
+        }
+      } catch {
+        errorEl.textContent = '网络错误，请稍后再试';
+      }
+    }
+
+    // 回车登录
+    document.getElementById('loginPassword').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') doLogin();
+    });
+
+    checkAuth();
+  </script>
+</body>
+</html>
