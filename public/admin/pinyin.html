@@ -119,10 +119,11 @@
     }
     .data-table .no-img { color: #CCC; font-size: 12px; }
     .data-table .emoji-cell { font-size: 20px; }
-    .data-table .actions { display: flex; gap: 6px; }
+    .data-table .actions { white-space: nowrap; }
     .data-table .actions button {
       padding: 4px 10px; font-size: 12px; border-radius: 4px; cursor: pointer;
-      border: 1px solid #DDD; background: white; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+      border: 1px solid #DDD; background: white; margin-right: 6px;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
     }
     .data-table .actions .btn-edit { color: #1976D2; }
     .data-table .actions .btn-edit:hover { background: #E3F2FD; }
@@ -137,12 +138,13 @@
     .modal-overlay.active { display: flex; }
     .modal {
       background: white; border-radius: 16px; padding: 32px;
-      width: 500px; max-width: 95vw; max-height: 90vh; overflow-y: auto;
+      width: 780px; max-width: 95vw; max-height: 95vh; overflow-y: auto;
       box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+      position: relative;
     }
-    .modal h3 { font-size: 18px; margin-bottom: 24px; font-weight: 700; }
-    .modal .form-row { margin-bottom: 16px; }
-    .modal .form-row label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; font-weight: 500; }
+.modal h3 { font-size: 18px; margin-bottom: 16px; font-weight: 700; }
+    .modal .form-row { margin-bottom: 12px; }
+    .modal .form-row label { display: block; font-size: 13px; color: #666; margin-bottom: 4px; font-weight: 500; }
     .modal .form-row input, .modal .form-row select {
       width: 100%; padding: 10px 12px; font-size: 14px;
       border: 1px solid #DDD; border-radius: 8px; outline: none;
@@ -151,29 +153,49 @@
     .modal .form-row input:focus, .modal .form-row select:focus { border-color: #1976D2; }
     .modal .form-row-inline { display: flex; gap: 12px; }
     .modal .form-row-inline .form-row { flex: 1; }
-    .modal .tone-group { display: flex; gap: 8px; }
-    .modal .tone-group label {
-      display: inline-flex; align-items: center; gap: 4px; cursor: pointer;
-      padding: 6px 12px; border: 1px solid #DDD; border-radius: 6px; font-size: 14px;
+    .modal .form-row-4col { display: flex; gap: 12px; align-items: flex-end; margin-bottom: 16px; }
+    .modal .form-row-4col .form-row { flex: 1; }
+    .modal .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+    .modal .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .modal .toggle-slider {
+      position: absolute; cursor: pointer; inset: 0;
+      background: #CCC; border-radius: 24px; transition: 0.2s;
     }
-    .modal .tone-group input:checked + span { color: #1976D2; font-weight: 700; }
+    .modal .toggle-slider::before {
+      content: ""; position: absolute; height: 18px; width: 18px;
+      left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s;
+    }
+    .modal .toggle-switch input:checked + .toggle-slider { background: #1976D2; }
+    .modal .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
     .modal .pinyin-preview {
-      background: #F5F5F5; padding: 12px; border-radius: 8px;
-      text-align: center; font-size: 28px; font-weight: 700; color: #1976D2;
-      margin-bottom: 16px;
+      background: #F5F5F5; padding: 10px; border-radius: 8px;
+      text-align: center; font-size: 26px; font-weight: 700; color: #1976D2;
+      margin-bottom: 12px;
       font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
     }
     .modal .img-preview {
-      width: 160px; height: 160px; border-radius: 12px; object-fit: cover;
-      border: 2px solid #EEE; margin-bottom: 8px;
+      display: block; margin: 0 auto 8px;
+      width: 140px; height: 140px; border-radius: 12px; object-fit: cover;
+      border: 2px solid #EEE;
     }
-    .modal .img-area { text-align: center; margin-bottom: 16px; }
+    .modal .img-placeholder {
+      width: 350px; height: 190px; border-radius: 12px; margin: 0 auto 8px;
+      border: 2px dashed #CCC; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 6px;
+      color: #BBB; cursor: pointer;
+    }
+    .modal .img-placeholder:hover { border-color: #1976D2; color: #1976D2; }
+    .modal .img-placeholder i { font-size: 24px; }
+    .modal .img-placeholder span { font-size: 11px; line-height: 1.4; text-align: center; }
+    .modal .img-area { text-align: center; margin-bottom: 30px; }
     .modal .img-area button {
       padding: 6px 14px; font-size: 13px; border-radius: 6px; cursor: pointer;
       border: 1px solid #DDD; background: white; margin: 4px;
       font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
     }
-    .modal .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+    .modal .voice-row-inline { display: flex; gap: 16px; margin-bottom: 12px; }
+    .modal .voice-row-inline .form-row { flex: 1; }
+    .modal .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 16px; }
     .modal .modal-actions button {
       padding: 10px 24px; font-size: 14px; border-radius: 8px; cursor: pointer;
       border: none; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
@@ -198,9 +220,132 @@
     }
     .confirm-box p { margin-bottom: 20px; font-size: 15px; line-height: 1.6; }
     .confirm-box .modal-actions { justify-content: center; }
+
+    /* 语音控件 */
+    .voice-controls {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    }
+    .voice-controls button {
+      padding: 4px 10px; font-size: 12px; border-radius: 6px; cursor: pointer;
+      border: 1px solid #DDD; background: white;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .voice-controls button:hover { background: #F5F5F5; }
+    .voice-controls .btn-play { color: #4CAF50; border-color: #C8E6C9; }
+    .voice-controls .btn-play:hover { background: #E8F5E9; }
+    .voice-controls .btn-del { color: #F44336; border-color: #FFCDD2; }
+    .voice-controls .btn-del:hover { background: #FFF5F5; }
+    .voice-controls .voice-tag {
+      font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 500;
+    }
+    .voice-tag.uploaded { background: #E8F5E9; color: #2E7D32; }
+    .voice-tag.missing { background: #FFF3E0; color: #E65100; }
+
+    /* 表格语音状态 */
+    .voice-status { white-space: nowrap; }
+    .voice-dot {
+      width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+      margin-right: 4px;
+    }
+    .voice-dot.ok { background: #4CAF50; }
+    .voice-dot.no { background: #E0E0E0; }
+
+    /* 语音管理模态框 */
+    .voice-tabs {
+      display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid #EEE; padding-bottom: 12px;
+    }
+    .voice-tab {
+      padding: 8px 20px; border-radius: 8px 8px 0 0; border: 1px solid #DDD;
+      border-bottom: none; background: #F5F5F5; cursor: pointer; font-size: 14px; font-weight: 500;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    .voice-tab.active { background: white; border-bottom: 2px solid white; color: #1976D2; font-weight: 700; }
+    .voice-grid {
+      display: flex; flex-wrap: wrap; gap: 8px; max-height: 50vh; overflow-y: auto; padding: 4px;
+    }
+    .voice-item {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 10px; border: 1px solid #EEE; border-radius: 8px;
+      font-size: 13px; background: white; min-width: 160px;
+    }
+    .voice-item .vi-name { font-weight: 700; min-width: 50px; font-family: monospace; }
+    .voice-item .vi-status { font-size: 16px; }
+    .voice-item button {
+      padding: 2px 6px; font-size: 11px; border-radius: 4px; cursor: pointer;
+      border: 1px solid #DDD; background: white;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    .voice-item button:hover { background: #F5F5F5; }
+    .bulk-upload {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+      padding: 12px; background: #F5F5F5; border-radius: 8px;
+    }
+    .bulk-upload button {
+      padding: 8px 16px; font-size: 13px; border-radius: 6px; cursor: pointer;
+      border: 1px solid #DDD; background: white; font-weight: 500;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .bulk-upload button:hover { background: #E3F2FD; }
+    .bulk-upload .help-text { font-size: 12px; color: #999; }
+    .voice-summary { font-size: 13px; color: #666; margin-bottom: 12px; }
+    .voice-summary b { color: #1976D2; }
+
+    /* 批量语音导入 */
+    .batch-voice-instructions {
+      background: #FFF8E1; border: 1px solid #FFE082; border-radius: 8px;
+      padding: 12px 16px; margin-bottom: 16px; font-size: 13px; line-height: 1.6;
+    }
+    .batch-voice-instructions code {
+      background: #FFF3E0; padding: 1px 6px; border-radius: 4px; font-size: 12px;
+    }
+    .batch-voice-dropzone {
+      border: 2px dashed #BDBDBD; border-radius: 12px; padding: 32px;
+      text-align: center; cursor: pointer; margin-bottom: 16px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .batch-voice-dropzone:hover, .batch-voice-dropzone.dragover {
+      border-color: #1976D2; background: #E3F2FD;
+    }
+    .batch-voice-dropzone i { font-size: 32px; color: #BDBDBD; margin-bottom: 8px; }
+    .batch-voice-dropzone.dragover i { color: #1976D2; }
+    .batch-voice-preview { max-height: 45vh; overflow-y: auto; margin-bottom: 16px; }
+    .batch-voice-preview table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .batch-voice-preview th {
+      text-align: left; padding: 8px 10px; background: #FAFAFA;
+      border-bottom: 1px solid #EEE; font-size: 12px; color: #999; font-weight: 700;
+    }
+    .batch-voice-preview td { padding: 6px 10px; border-bottom: 1px solid #F5F5F5; }
+    .batch-voice-preview .status-match { color: #2E7D32; }
+    .batch-voice-preview .status-ambiguous { color: #E65100; }
+    .batch-voice-preview .status-nomatch { color: #F44336; }
+    .batch-voice-preview .status-skip { color: #9E9E9E; }
+    .batch-voice-summary {
+      font-size: 13px; color: #666; margin-bottom: 12px; display: flex; gap: 16px;
+    }
+    .batch-voice-summary b { color: #1976D2; }
+    .batch-voice-conflict {
+      display: flex; gap: 12px; margin-bottom: 16px; font-size: 13px; align-items: center;
+    }
+    .batch-voice-conflict label {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border: 1px solid #DDD; border-radius: 6px; cursor: pointer;
+    }
+    .batch-voice-conflict input:checked + span { color: #1976D2; font-weight: 700; }
+
+    /* Toast 提示 */
+    .toast {
+      position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+      background: #4CAF50; color: white; padding: 10px 24px; border-radius: 8px;
+      font-size: 14px; z-index: 9999; opacity: 0; transition: opacity 0.3s;
+      pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .toast.show { opacity: 1; }
   </style>
 </head>
 <body>
+  <div class="toast" id="toast"></div>
   <!-- 登录 -->
   <div class="login-overlay" id="loginOverlay">
     <div class="login-box">
@@ -215,9 +360,10 @@
   <div class="admin-app" id="adminApp">
     <!-- 顶部栏 -->
     <div class="topbar">
-      <a href="/app/index.html" style="color:#1976D2;text-decoration:none;font-size:14px;"><i class="fas fa-arrow-left"></i> 返回主页</a>
+      <a href="/index.html" style="color:#1976D2;text-decoration:none;font-size:14px;"><i class="fas fa-arrow-left"></i> 返回主页</a>
       <span class="topbar-title">拼音课程管理</span>
       <div class="topbar-actions">
+        <button onclick="showVoiceModal()"><i class="fas fa-microphone"></i> 语音管理</button>
         <button onclick="exportData()"><i class="fas fa-download"></i> 导出 JSON</button>
         <button onclick="showImportModal()"><i class="fas fa-upload"></i> 导入 JSON</button>
         <button class="btn-danger" onclick="showResetConfirm()"><i class="fas fa-rotate-left"></i> 重置数据</button>
@@ -250,7 +396,7 @@
           <thead>
             <tr>
               <th>拼音</th><th>汉字</th><th>声母</th><th>韵母</th>
-              <th>声调</th><th>分类</th><th>Emoji</th><th>图片</th><th>操作</th>
+              <th>声调</th><th>整体认读</th><th>分类</th><th>Emoji</th><th>图片</th><th>语音</th><th>操作</th>
             </tr>
           </thead>
           <tbody id="tableBody"></tbody>
@@ -265,7 +411,7 @@
       <h3 id="modalTitle">新增拼音条目</h3>
       <div class="pinyin-preview" id="pinyinPreview">-</div>
 
-      <div class="form-row-inline">
+      <div class="form-row-4col">
         <div class="form-row">
           <label>声母</label>
           <select id="fInitial" onchange="updatePreview()">
@@ -291,19 +437,27 @@
             <option>ua</option><option>uo</option><option>uai</option><option>uan</option><option>uang</option>
           </select>
         </div>
-      </div>
-
-      <div class="form-row">
-        <label>声调</label>
-        <div class="tone-group">
-          <label><input type="radio" name="fTone" value="1" checked onchange="updatePreview()"><span>ˉ 一声</span></label>
-          <label><input type="radio" name="fTone" value="2" onchange="updatePreview()"><span>ˊ 二声</span></label>
-          <label><input type="radio" name="fTone" value="3" onchange="updatePreview()"><span>ˇ 三声</span></label>
-          <label><input type="radio" name="fTone" value="4" onchange="updatePreview()"><span>ˋ 四声</span></label>
+        <div class="form-row">
+          <label>声调</label>
+          <select id="fTone" onchange="updatePreview()">
+            <option value="1">ˉ 一声</option>
+            <option value="2">ˊ 二声</option>
+            <option value="3">ˇ 三声</option>
+            <option value="4">ˋ 四声</option>
+          </select>
+        </div>
+        <div class="form-row" style="flex:0 0 auto;">
+          <label>整体认读音节</label>
+          <div style="height:42px;display:flex;align-items:center;">
+            <label class="toggle-switch">
+              <input type="checkbox" id="fWholeSyllable">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
         </div>
       </div>
 
-      <div class="form-row-inline">
+      <div class="form-row-4col">
         <div class="form-row">
           <label>汉字</label>
           <input type="text" id="fChar" maxlength="4" placeholder="如：猫">
@@ -312,9 +466,6 @@
           <label>释义</label>
           <input type="text" id="fMeaning" placeholder="如：小猫咪">
         </div>
-      </div>
-
-      <div class="form-row-inline">
         <div class="form-row">
           <label>分类</label>
           <input type="text" id="fCategory" placeholder="如：动物" list="categoryList">
@@ -327,12 +478,39 @@
       </div>
 
       <div class="form-row img-area" id="imgArea">
-        <label style="display:block;margin-bottom:8px;">图片</label>
+        <label style="display:block;margin-bottom:6px;">图片</label>
+        <div class="img-placeholder" id="imgPlaceholder" onclick="document.getElementById('imgFile').click()" ondragover="dragOverImage(event)" ondragleave="dragLeaveImage()" ondrop="dropImage(event)">
+          <i class="fas fa-image"></i>
+          <span>点击或拖入图片<br>建议 400×400<br>JPG / PNG</span>
+        </div>
         <img class="img-preview" id="imgPreview" src="" style="display:none;">
         <div>
           <input type="file" id="imgFile" accept="image/*" style="display:none;" onchange="previewImage(this)">
           <button onclick="document.getElementById('imgFile').click()"><i class="fas fa-image"></i> 选择图片</button>
           <button onclick="clearImage()"><i class="fas fa-trash"></i> 清除图片</button>
+        </div>
+      </div>
+
+      <div class="voice-row-inline">
+        <div class="form-row" id="voiceCharArea" style="display:none;">
+          <label>汉字发音</label>
+          <div class="voice-controls">
+            <span id="voiceCharTag" class="voice-tag missing">未上传</span>
+            <button class="btn-play" id="voiceCharPlayBtn" style="display:none;" onclick="playEntryVoice('char')"><i class="fas fa-play"></i> 播放</button>
+            <input type="file" id="voiceCharFile" accept="audio/*" style="display:none;" onchange="uploadEntryVoice('char', this)">
+            <button onclick="document.getElementById('voiceCharFile').click()"><i class="fas fa-upload"></i> 上传</button>
+            <button class="btn-del" id="voiceCharDelBtn" style="display:none;" onclick="deleteEntryVoice('char')"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+        <div class="form-row" id="voiceMeaningArea" style="display:none;">
+          <label>释义发音</label>
+          <div class="voice-controls">
+            <span id="voiceMeaningTag" class="voice-tag missing">未上传</span>
+            <button class="btn-play" id="voiceMeaningPlayBtn" style="display:none;" onclick="playEntryVoice('meaning')"><i class="fas fa-play"></i> 播放</button>
+            <input type="file" id="voiceMeaningFile" accept="audio/*" style="display:none;" onchange="uploadEntryVoice('meaning', this)">
+            <button onclick="document.getElementById('voiceMeaningFile').click()"><i class="fas fa-upload"></i> 上传</button>
+            <button class="btn-del" id="voiceMeaningDelBtn" style="display:none;" onclick="deleteEntryVoice('meaning')"><i class="fas fa-trash"></i></button>
+          </div>
         </div>
       </div>
 
@@ -371,10 +549,66 @@
       <div class="confirm-box">
         <h3 id="confirmTitle">确认操作</h3>
         <p id="confirmMsg"></p>
+        <div id="resetCodeBox" style="display:none; margin:16px 0; padding:12px; background:#FFF3E0; border-radius:8px;">
+          <p style="margin:0 0 8px 0; font-size:14px; color:#666;">请输入以下随机码以确认重置：</p>
+          <p id="resetCode" style="margin:0 0 12px 0; font-size:18px; font-weight:bold; color:#F44336; font-family:monospace; letter-spacing:2px; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;"></p>
+          <input type="text" id="resetCodeInput" placeholder="输入上面的随机码" style="width:100%; padding:8px; border:1px solid #DDD; border-radius:4px; box-sizing:border-box; font-family:monospace;">
+        </div>
         <div class="modal-actions">
           <button class="btn-cancel" onclick="closeModal('confirmModal')">取消</button>
           <button class="btn-save" id="confirmBtn" style="background:#F44336;">确认</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 语音管理模态框 -->
+  <div class="modal-overlay" id="voiceModal">
+    <div class="modal" style="width:750px;">
+      <h3>语音管理</h3>
+      <div class="voice-summary" id="voiceSummary"></div>
+      <div class="voice-tabs">
+        <button class="voice-tab active" id="tabInitial" onclick="switchVoiceTab('initial')">声母录音</button>
+        <button class="voice-tab" id="tabFinal" onclick="switchVoiceTab('final')">韵母录音</button>
+        <button class="voice-tab" id="tabEntry" onclick="switchVoiceTab('entry')">条目语音</button>
+      </div>
+      <div id="voiceBasePanel">
+        <div class="bulk-upload">
+          <input type="file" id="bulkVoiceFiles" multiple accept="audio/*" style="display:none;" onchange="bulkUploadVoice(this)">
+          <button onclick="document.getElementById('bulkVoiceFiles').click()"><i class="fas fa-upload"></i> 批量上传</button>
+          <span class="help-text">文件命名：initial-b.mp3, final-a-1.mp3 等，自动匹配</span>
+        </div>
+        <div id="voiceInitialGrid" class="voice-grid"></div>
+        <div id="voiceFinalGrid" class="voice-grid" style="display:none;"></div>
+      </div>
+      <div id="voiceEntryPanel" style="display:none;">
+        <div class="batch-voice-instructions">
+          <b>文件命名规则：</b><br>
+          汉字发音：<code>猫_char.mp3</code> &nbsp; 释义发音：<code>猫_meaning.mp3</code><br>
+          同字不同调消歧义：<code>猫1_char.mp3</code>（声调1）<br>
+          支持格式：.mp3 / .m4a / .wav
+        </div>
+        <div class="batch-voice-conflict">
+          <span>已有语音时：</span>
+          <label><input type="radio" name="batchConflictInline" value="overwrite" checked><span>覆盖</span></label>
+          <label><input type="radio" name="batchConflictInline" value="skip"><span>跳过</span></label>
+        </div>
+        <div class="batch-voice-dropzone" id="batchVoiceDropzoneInline"
+             onclick="document.getElementById('batchVoiceInputInline').click()">
+          <i class="fas fa-cloud-upload-alt"></i><br>
+          <span>点击选择文件或拖拽文件到此处</span><br>
+          <small style="color:#999;">支持多选</small>
+          <input type="file" id="batchVoiceInputInline" multiple accept="audio/*"
+                 style="display:none;" onchange="batchVoiceFilesSelected(this)">
+        </div>
+        <div class="batch-voice-summary" id="batchVoiceSummaryInline" style="display:none;"></div>
+        <div class="batch-voice-preview" id="batchVoicePreviewInline"></div>
+        <div id="batchVoiceConfirmArea" style="display:none;text-align:right;margin-top:12px;">
+          <button class="btn-save" onclick="doBatchVoiceUpload()">确认导入</button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal('voiceModal')">关闭</button>
       </div>
     </div>
   </div>
@@ -386,6 +620,12 @@
     let categories = [];
     let editingId = null;
     let searchTimer = null;
+    let voiceFiles = []; // 已上传的声母/韵母语音文件列表
+    let currentAudio = null;
+
+    const INITIALS = ['b','p','m','f','d','t','n','l','g','k','h','j','q','x','zh','ch','sh','r','z','c','s','y','w'];
+    const FINALS = ['a','o','e','i','u','v','ai','ei','ui','ao','ou','iu','ie','ue','er','an','en','in','un','vn','ang','eng','ing','ong','ia','iao','ian','iang','iong','ua','uo','uai','uan','uang'];
+    const FINAL_DISPLAY = { 'v': 'ü', 'vn': 'ün', 'ue': 'üe' };
 
     function getToken() { return localStorage.getItem(TOKEN_KEY); }
     function authHeaders() { return { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' }; }
@@ -424,7 +664,14 @@
 
     // 加载数据
     async function loadAll() {
-      await Promise.all([loadData(), loadCategories(), loadStats()]);
+      await Promise.all([loadData(), loadCategories(), loadStats(), loadVoiceFiles()]);
+    }
+
+    async function loadVoiceFiles() {
+      try {
+        const res = await fetch('/api/voice');
+        voiceFiles = await res.json();
+      } catch { voiceFiles = []; }
     }
 
     async function loadData() {
@@ -443,10 +690,25 @@
     }
 
     async function loadStats() {
-      const res = await fetch('/api/pinyin/stats', { headers: authHeaders() });
-      const s = await res.json();
-      document.getElementById('statsBar').innerHTML =
-        `<span>共 <b>${s.total}</b> 条</span><span>有图片 <b>${s.withImage}</b> 条</span><span>缺图片 <b>${s.withoutImage}</b> 条</span>`;
+      try {
+        const [statsRes, voiceStatsRes] = await Promise.all([
+          fetch('/api/pinyin/stats', { headers: authHeaders() }),
+          fetch('/api/pinyin/voice-stats', { headers: authHeaders() }),
+        ]);
+        if (!statsRes.ok || !voiceStatsRes.ok) {
+          console.error('Stats API error:', statsRes.status, voiceStatsRes.status);
+          return;
+        }
+        const s = await statsRes.json();
+        const vs = await voiceStatsRes.json();
+        console.log('Stats:', s, 'Voice Stats:', vs);
+        document.getElementById('statsBar').innerHTML =
+          `<span>共 <b>${s.total}</b> 条</span><span>图片 <b>${s.withImage}/${s.total}</b> 张</span>` +
+          `<span>字音 <b>${vs.withCharVoice}/${vs.total}</b></span><span>释义音 <b>${vs.withMeaningVoice}/${vs.total}</b></span>` +
+          `<span>声母音 <b>${vs.initialFiles}/${vs.totalInitials}</b></span><span>韵母音 <b>${vs.finalFiles}/${vs.totalFinals*4}</b></span>`;
+      } catch (err) {
+        console.error('Failed to load stats:', err);
+      }
     }
 
     function buildFilterParams() {
@@ -481,7 +743,7 @@
     function renderTable() {
       const tbody = document.getElementById('tableBody');
       if (allData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#999;padding:40px;">暂无数据</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#999;padding:40px;">暂无数据</td></tr>';
         return;
       }
       tbody.innerHTML = allData.map(item => `
@@ -491,9 +753,14 @@
           <td>${item.initial || '-'}</td>
           <td>${item.final}</td>
           <td>${item.tone}</td>
+          <td>${item.is_whole_syllable ? '✅' : ''}</td>
           <td>${item.category || '-'}</td>
           <td class="emoji-cell">${item.emoji || '-'}</td>
-          <td>${item.image ? `<img class="img-thumb" src="/uploads/pinyin/${item.image}">` : '<span class="no-img">缺</span>'}</td>
+          <td>${item.image ? `<img class="img-thumb" src="/uploads/pinyin_image/${item.image}">` : '<span class="no-img">缺</span>'}</td>
+          <td class="voice-status" title="字音/释义">
+            <span class="voice-dot ${item.voice_char ? 'ok' : 'no'}" title="字音${item.voice_char ? '✓' : '✗'}"></span>
+            <span class="voice-dot ${item.voice_meaning ? 'ok' : 'no'}" title="释义${item.voice_meaning ? '✓' : '✗'}"></span>
+          </td>
           <td class="actions">
             <button class="btn-edit" onclick="showEditModal('${item.id}')"><i class="fas fa-edit"></i></button>
             <button class="btn-del" onclick="confirmDelete('${item.id}','${item.char}')"><i class="fas fa-trash"></i></button>
@@ -524,7 +791,7 @@
     function updatePreview() {
       const initial = document.getElementById('fInitial').value;
       const final = document.getElementById('fFinal').value;
-      const tone = parseInt(document.querySelector('input[name="fTone"]:checked')?.value || '1');
+      const tone = parseInt(document.getElementById('fTone').value || '1');
       const display = initial + addTone(final, tone);
       document.getElementById('pinyinPreview').textContent = display || '-';
     }
@@ -535,13 +802,18 @@
       document.getElementById('modalTitle').textContent = '新增拼音条目';
       document.getElementById('fInitial').value = '';
       document.getElementById('fFinal').value = 'a';
-      document.querySelector('input[name="fTone"][value="1"]').checked = true;
+      document.getElementById('fTone').value = '1';
       document.getElementById('fChar').value = '';
       document.getElementById('fMeaning').value = '';
       document.getElementById('fCategory').value = '';
       document.getElementById('fEmoji').value = '';
+      document.getElementById('fWholeSyllable').checked = false;
       document.getElementById('imgPreview').style.display = 'none';
+      document.getElementById('imgPlaceholder').style.display = '';
       document.getElementById('imgFile').value = '';
+      // 新增时隐藏语音区域（保存后才能上传）
+      document.getElementById('voiceCharArea').style.display = 'none';
+      document.getElementById('voiceMeaningArea').style.display = 'none';
       updatePreview();
       openModal('editModal');
     }
@@ -553,26 +825,89 @@
       document.getElementById('modalTitle').textContent = '编辑拼音条目';
       document.getElementById('fInitial').value = item.initial;
       document.getElementById('fFinal').value = item.final;
-      const toneRadio = document.querySelector(`input[name="fTone"][value="${item.tone}"]`);
-      if (toneRadio) toneRadio.checked = true;
+      document.getElementById('fTone').value = item.tone;
       document.getElementById('fChar').value = item.char;
       document.getElementById('fMeaning').value = item.meaning || '';
       document.getElementById('fCategory').value = item.category || '';
       document.getElementById('fEmoji').value = item.emoji || '';
+      document.getElementById('fWholeSyllable').checked = !!item.is_whole_syllable;
       const preview = document.getElementById('imgPreview');
+      const placeholder = document.getElementById('imgPlaceholder');
       if (item.image) {
-        preview.src = `/uploads/pinyin/${item.image}`;
+        preview.src = `/uploads/pinyin_image/${item.image}`;
         preview.style.display = 'block';
+        placeholder.style.display = 'none';
       } else {
         preview.style.display = 'none';
+        placeholder.style.display = '';
       }
       document.getElementById('imgFile').value = '';
+      // 语音区域
+      document.getElementById('voiceCharArea').style.display = '';
+      document.getElementById('voiceMeaningArea').style.display = '';
+      updateVoiceUI('char', item.voice_char);
+      updateVoiceUI('meaning', item.voice_meaning);
+      document.getElementById('voiceCharFile').value = '';
+      document.getElementById('voiceMeaningFile').value = '';
       updatePreview();
       openModal('editModal');
     }
 
+    function updateVoiceUI(type, filename) {
+      const tag = document.getElementById(`voice${type === 'char' ? 'Char' : 'Meaning'}Tag`);
+      const playBtn = document.getElementById(`voice${type === 'char' ? 'Char' : 'Meaning'}PlayBtn`);
+      const delBtn = document.getElementById(`voice${type === 'char' ? 'Char' : 'Meaning'}DelBtn`);
+      if (filename) {
+        tag.textContent = '已上传'; tag.className = 'voice-tag uploaded';
+        playBtn.style.display = ''; delBtn.style.display = '';
+      } else {
+        tag.textContent = '未上传'; tag.className = 'voice-tag missing';
+        playBtn.style.display = 'none'; delBtn.style.display = 'none';
+      }
+    }
+
     function openModal(id) { document.getElementById(id).classList.add('active'); }
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+      }
+    });
+
+    function showToast(msg, duration = 2000) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), duration);
+    }
+
+    function dragOverImage(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      document.getElementById('imgPlaceholder').style.background = '#F5F5F5';
+      document.getElementById('imgPlaceholder').style.borderColor = '#2196F3';
+    }
+    function dragLeaveImage() {
+      document.getElementById('imgPlaceholder').style.background = '';
+      document.getElementById('imgPlaceholder').style.borderColor = '';
+    }
+    function dropImage(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dragLeaveImage();
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        const file = e.dataTransfer.files[0];
+        if (file.type.startsWith('image/')) {
+          const input = document.getElementById('imgFile');
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(file);
+          input.files = dataTransfer.files;
+          previewImage(input);
+        } else {
+          alert('请拖入图片文件');
+        }
+      }
+    }
 
     function previewImage(input) {
       if (input.files && input.files[0]) {
@@ -581,12 +916,14 @@
           const preview = document.getElementById('imgPreview');
           preview.src = e.target.result;
           preview.style.display = 'block';
+          document.getElementById('imgPlaceholder').style.display = 'none';
         };
         reader.readAsDataURL(input.files[0]);
       }
     }
     function clearImage() {
       document.getElementById('imgPreview').style.display = 'none';
+      document.getElementById('imgPlaceholder').style.display = '';
       document.getElementById('imgFile').value = '';
     }
 
@@ -594,16 +931,17 @@
     async function saveItem() {
       const initial = document.getElementById('fInitial').value;
       const finalVal = document.getElementById('fFinal').value;
-      const tone = parseInt(document.querySelector('input[name="fTone"]:checked').value);
+      const tone = parseInt(document.getElementById('fTone').value);
       const char = document.getElementById('fChar').value.trim();
       const meaning = document.getElementById('fMeaning').value.trim();
       const category = document.getElementById('fCategory').value.trim();
       const emoji = document.getElementById('fEmoji').value.trim();
+      const isWholeSyllable = document.getElementById('fWholeSyllable').checked;
       const pinyinStr = initial + addTone(finalVal, tone);
 
       if (!char) { alert('请输入汉字'); return; }
 
-      const body = { pinyin: pinyinStr, initial, final: finalVal, tone, char, meaning, category, emoji };
+      const body = { pinyin: pinyinStr, initial, final: finalVal, tone, char, meaning, category, emoji, is_whole_syllable: isWholeSyllable };
 
       try {
         let res;
@@ -631,15 +969,18 @@
           });
         }
 
-        closeModal('editModal');
+        // 新增时记录id，后续可继续编辑
+        if (!editingId) editingId = data.id;
+        showToast('保存成功');
         loadAll();
-      } catch { alert('保存失败'); }
+      } catch { showToast('保存失败'); }
     }
 
     // 删除
     function confirmDelete(id, char) {
       document.getElementById('confirmTitle').textContent = '确认删除';
       document.getElementById('confirmMsg').textContent = `确定要删除「${char}」吗？此操作不可恢复。`;
+      document.getElementById('resetCodeBox').style.display = 'none';
       document.getElementById('confirmBtn').onclick = async () => {
         await fetch(`/api/pinyin/${id}`, { method: 'DELETE', headers: authHeaders() });
         closeModal('confirmModal');
@@ -682,16 +1023,395 @@
     }
 
     // 重置
+    function generateRandomCode() {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let code = '';
+      for (let i = 0; i < 8; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return code;
+    }
+
     function showResetConfirm() {
       document.getElementById('confirmTitle').textContent = '重置数据';
-      document.getElementById('confirmMsg').textContent = '确定要重置为默认数据吗？所有自定义数据和图片将被删除。';
+      document.getElementById('confirmMsg').textContent = '只删除数据库中的数据，不会删除 uploads 目录的音频文件和图片。';
+
+      // 生成随机码
+      const resetCode = generateRandomCode();
+      const resetCodeEl = document.getElementById('resetCode');
+      resetCodeEl.textContent = resetCode;
+      document.getElementById('resetCodeInput').value = '';
+      document.getElementById('resetCodeBox').style.display = 'block';
+
+      // 禁止复制和右键菜单
+      resetCodeEl.oncontextmenu = (e) => { e.preventDefault(); return false; };
+      resetCodeEl.oncopy = (e) => { e.preventDefault(); return false; };
+
       document.getElementById('confirmBtn').onclick = async () => {
+        const inputCode = document.getElementById('resetCodeInput').value.trim();
+        if (inputCode !== resetCode) {
+          alert('随机码错误，请重新输入。');
+          return;
+        }
         await fetch('/api/pinyin/reset', { method: 'POST', headers: authHeaders() });
         closeModal('confirmModal');
         loadAll();
       };
       openModal('confirmModal');
     }
+
+    // ========== 条目语音上传/删除/播放 ==========
+    async function uploadEntryVoice(type, input) {
+      if (!editingId || !input.files[0]) return;
+      const formData = new FormData();
+      formData.append('file', input.files[0]);
+      try {
+        const res = await fetch(`/api/pinyin/${editingId}/voice/${type}`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${getToken()}` },
+          body: formData,
+        });
+        const data = await res.json();
+        if (res.ok) {
+          updateVoiceUI(type, type === 'char' ? data.voice_char : data.voice_meaning);
+          // 同步更新本地数据
+          const idx = allData.findIndex(d => d.id === editingId);
+          if (idx >= 0) allData[idx] = data;
+          renderTable();
+          loadStats();
+        } else { alert(data.error); }
+      } catch { alert('上传失败'); }
+    }
+
+    async function deleteEntryVoice(type) {
+      if (!editingId) return;
+      if (!confirm('确定删除该录音？')) return;
+      try {
+        const res = await fetch(`/api/pinyin/${editingId}/voice/${type}`, {
+          method: 'DELETE', headers: authHeaders(),
+        });
+        if (res.ok) {
+          updateVoiceUI(type, null);
+          const idx = allData.findIndex(d => d.id === editingId);
+          if (idx >= 0) {
+            allData[idx][type === 'char' ? 'voice_char' : 'voice_meaning'] = null;
+          }
+          renderTable();
+          loadStats();
+        }
+      } catch { alert('删除失败'); }
+    }
+
+    function playEntryVoice(type) {
+      if (!editingId) return;
+      const item = allData.find(d => d.id === editingId);
+      if (!item) return;
+      const filename = type === 'char' ? item.voice_char : item.voice_meaning;
+      if (!filename) return;
+      playAudioFile(`/voice_entry/${filename}`);
+    }
+
+    function playAudioFile(url) {
+      if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+      currentAudio = new Audio(url);
+      currentAudio.play().catch(() => {});
+      currentAudio.onended = () => { currentAudio = null; };
+    }
+
+    // ========== 语音管理模态框 ==========
+    function showVoiceModal() {
+      loadVoiceFiles().then(() => {
+        renderVoiceGrids();
+        openModal('voiceModal');
+      });
+    }
+
+    function switchVoiceTab(tab) {
+      document.getElementById('tabInitial').className = 'voice-tab' + (tab === 'initial' ? ' active' : '');
+      document.getElementById('tabFinal').className = 'voice-tab' + (tab === 'final' ? ' active' : '');
+      document.getElementById('tabEntry').className = 'voice-tab' + (tab === 'entry' ? ' active' : '');
+      document.getElementById('voiceBasePanel').style.display = (tab === 'initial' || tab === 'final') ? '' : 'none';
+      document.getElementById('voiceInitialGrid').style.display = tab === 'initial' ? '' : 'none';
+      document.getElementById('voiceFinalGrid').style.display = tab === 'final' ? '' : 'none';
+      document.getElementById('voiceEntryPanel').style.display = tab === 'entry' ? '' : 'none';
+      if (tab === 'entry') setupBatchDropzoneInline();
+    }
+
+    function renderVoiceGrids() {
+      // 统计
+      const initialCount = INITIALS.filter(i => voiceFiles.includes(`initial-${i}.mp3`)).length;
+      const totalFinals = FINALS.length * 4;
+      let finalCount = 0;
+      FINALS.forEach(f => {
+        const fn = FINAL_DISPLAY[f] ? f.replace('v', 'ü').replace('vn', 'ün').replace('ue', 'üe') : f;
+        const displayFn = { 'v': 'ü', 'vn': 'ün', 'ue': 'üe' }[f] || f;
+        for (let t = 1; t <= 4; t++) {
+          if (voiceFiles.includes(`final-${displayFn}-${t}.mp3`)) finalCount++;
+        }
+      });
+      document.getElementById('voiceSummary').innerHTML =
+        `声母: <b>${initialCount}/${INITIALS.length}</b> 已录制 &nbsp;|&nbsp; 韵母: <b>${finalCount}/${totalFinals}</b> 已录制`;
+
+      // 声母
+      const ig = document.getElementById('voiceInitialGrid');
+      ig.innerHTML = INITIALS.map(i => {
+        const fn = `initial-${i}.mp3`;
+        const has = voiceFiles.includes(fn);
+        return `<div class="voice-item">
+          <span class="vi-name">${i}</span>
+          <span class="vi-status">${has ? '✅' : '❌'}</span>
+          ${has ? `<button onclick="playAudioFile('/voice/${fn}')"><i class="fas fa-play"></i></button>` : ''}
+          <input type="file" id="vf-${i}" accept="audio/*" style="display:none;" onchange="uploadBaseVoice('${fn}', this)">
+          <button onclick="document.getElementById('vf-${i}').click()"><i class="fas fa-upload"></i></button>
+          ${has ? `<button style="color:#F44336;" onclick="deleteBaseVoice('${fn}')"><i class="fas fa-trash"></i></button>` : ''}
+        </div>`;
+      }).join('');
+
+      // 韵母
+      const fg = document.getElementById('voiceFinalGrid');
+      const FINAL_FN = { 'v': 'ü', 'vn': 'ün', 'ue': 'üe' };
+      fg.innerHTML = FINALS.map(f => {
+        const displayF = FINAL_DISPLAY[f] || f;
+        const fileF = FINAL_FN[f] || f;
+        const toneItems = [1,2,3,4].map(t => {
+          const fn = `final-${fileF}-${t}.mp3`;
+          const has = voiceFiles.includes(fn);
+          const inputId = `vf-${f}-${t}`;
+          return `<span style="display:inline-flex;align-items:center;gap:2px;margin-right:4px;">
+            <span style="font-size:11px;color:#999;">${t}声</span>
+            <span>${has ? '✅' : '❌'}</span>
+            ${has ? `<button style="padding:1px 4px;font-size:10px;border:1px solid #DDD;border-radius:3px;cursor:pointer;background:white;" onclick="playAudioFile('/voice/${fn}')">▶</button>` : ''}
+            <input type="file" id="${inputId}" accept="audio/*" style="display:none;" onchange="uploadBaseVoice('${fn}', this)">
+            <button style="padding:1px 4px;font-size:10px;border:1px solid #DDD;border-radius:3px;cursor:pointer;background:white;" onclick="document.getElementById('${inputId}').click()">↑</button>
+          </span>`;
+        }).join('');
+        return `<div class="voice-item" style="min-width:280px;flex-direction:column;align-items:flex-start;gap:4px;">
+          <span class="vi-name">${displayF}</span>
+          <div>${toneItems}</div>
+        </div>`;
+      }).join('');
+    }
+
+    async function uploadBaseVoice(filename, input) {
+      if (!input.files[0]) return;
+      const formData = new FormData();
+      formData.append('file', input.files[0]);
+      try {
+        const res = await fetch(`/api/voice/${filename}`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${getToken()}` },
+          body: formData,
+        });
+        const data = await res.json();
+        if (res.ok) {
+          await loadVoiceFiles();
+          renderVoiceGrids();
+          loadStats();
+        } else { alert(data.error); }
+      } catch { alert('上传失败'); }
+    }
+
+    async function deleteBaseVoice(filename) {
+      if (!confirm(`确定删除 ${filename}？`)) return;
+      try {
+        await fetch(`/api/voice/${filename}`, { method: 'DELETE', headers: authHeaders() });
+        await loadVoiceFiles();
+        renderVoiceGrids();
+        loadStats();
+      } catch { alert('删除失败'); }
+    }
+
+    async function bulkUploadVoice(input) {
+      if (!input.files || input.files.length === 0) return;
+      let success = 0, fail = 0;
+      for (const file of input.files) {
+        const fn = file.name;
+        // 验证文件名格式
+        if (!/^(initial-[a-zü]{1,2}|final-[a-zü]{1,4}-[1-4])\.(mp3|m4a|wav)$/i.test(fn)) {
+          fail++;
+          continue;
+        }
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+          const res = await fetch(`/api/voice/${fn}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getToken()}` },
+            body: formData,
+          });
+          if (res.ok) success++; else fail++;
+        } catch { fail++; }
+      }
+      alert(`批量上传完成：成功 ${success} 个，失败 ${fail} 个`);
+      input.value = '';
+      await loadVoiceFiles();
+      renderVoiceGrids();
+      loadStats();
+    }
+
+    // ========== 批量条目语音导入 ==========
+    let batchVoiceFileList = [];
+    let batchVoiceMatches = [];
+
+    function resetBatchVoiceState() {
+      batchVoiceFileList = [];
+      batchVoiceMatches = [];
+      document.getElementById('batchVoicePreviewInline').innerHTML = '';
+      document.getElementById('batchVoiceSummaryInline').style.display = 'none';
+      document.getElementById('batchVoiceConfirmArea').style.display = 'none';
+      document.getElementById('batchVoiceInputInline').value = '';
+    }
+
+    function setupBatchDropzoneInline() {
+      const dz = document.getElementById('batchVoiceDropzoneInline');
+      dz.ondragover = (e) => { e.preventDefault(); dz.classList.add('dragover'); };
+      dz.ondragleave = () => { dz.classList.remove('dragover'); };
+      dz.ondrop = (e) => {
+        e.preventDefault();
+        dz.classList.remove('dragover');
+        const files = [...e.dataTransfer.files].filter(f => /\.(mp3|m4a|wav)$/i.test(f.name));
+        if (files.length > 0) processBatchVoiceFiles(files);
+      };
+    }
+
+    function batchVoiceFilesSelected(input) {
+      if (!input.files || input.files.length === 0) return;
+      processBatchVoiceFiles([...input.files]);
+    }
+
+    function parseBatchVoiceFilename(filename) {
+      // 猫_char.mp3 | 猫_meaning.m4a | 猫1_char.mp3 | 大象_meaning.wav
+      const match = filename.match(/^(.+?)(\d)?_(char|meaning)\.(mp3|m4a|wav)$/i);
+      if (!match) return null;
+      return { char: match[1], tone: match[2] ? parseInt(match[2]) : null, type: match[3].toLowerCase() };
+    }
+
+    function processBatchVoiceFiles(files) {
+      batchVoiceFileList = files;
+      const conflictRadio = document.querySelector('input[name="batchConflictInline"]:checked') || document.querySelector('input[name="batchConflict"]:checked');
+      const conflictMode = conflictRadio ? conflictRadio.value : 'overwrite';
+
+      // 按汉字建索引
+      const charMap = {};
+      for (const entry of allData) {
+        if (!charMap[entry.char]) charMap[entry.char] = [];
+        charMap[entry.char].push(entry);
+      }
+
+      batchVoiceMatches = files.map((file, index) => {
+        const parsed = parseBatchVoiceFilename(file.name);
+        if (!parsed) {
+          return { file, index, status: 'nomatch', reason: '文件名格式不匹配', parsed: null, entry: null };
+        }
+
+        const candidates = charMap[parsed.char];
+        if (!candidates || candidates.length === 0) {
+          return { file, index, status: 'nomatch', reason: `找不到「${parsed.char}」`, parsed, entry: null };
+        }
+
+        let matched;
+        if (candidates.length === 1) {
+          matched = candidates[0];
+        } else if (parsed.tone !== null) {
+          matched = candidates.find(e => e.tone === parsed.tone);
+          if (!matched) {
+            return { file, index, status: 'ambiguous',
+              reason: `「${parsed.char}」有 ${candidates.length} 个条目，声调 ${parsed.tone} 未找到`,
+              parsed, entry: null };
+          }
+        } else {
+          return { file, index, status: 'ambiguous',
+            reason: `「${parsed.char}」有 ${candidates.length} 个条目（${candidates.map(c => c.pinyin).join('/')}），请加声调数字`,
+            parsed, entry: null };
+        }
+
+        const col = parsed.type === 'char' ? 'voice_char' : 'voice_meaning';
+        if (matched[col] && conflictMode === 'skip') {
+          return { file, index, status: 'skip', reason: '已有语音，跳过', parsed, entry: matched };
+        }
+
+        return { file, index, status: 'match', reason: '', parsed, entry: matched };
+      });
+
+      renderBatchVoicePreview();
+    }
+
+    function renderBatchVoicePreview() {
+      const matchCount = batchVoiceMatches.filter(m => m.status === 'match').length;
+      const skipCount = batchVoiceMatches.filter(m => m.status === 'skip').length;
+      const ambiguousCount = batchVoiceMatches.filter(m => m.status === 'ambiguous').length;
+      const nomatchCount = batchVoiceMatches.filter(m => m.status === 'nomatch').length;
+
+      const summaryEl = document.getElementById('batchVoiceSummaryInline');
+      summaryEl.style.display = 'flex';
+      summaryEl.innerHTML =
+        `<span>共 <b>${batchVoiceFileList.length}</b> 个文件</span>` +
+        `<span>匹配 <b style="color:#2E7D32;">${matchCount}</b></span>` +
+        `<span>跳过 <b style="color:#9E9E9E;">${skipCount}</b></span>` +
+        `<span>歧义 <b style="color:#E65100;">${ambiguousCount}</b></span>` +
+        `<span>无匹配 <b style="color:#F44336;">${nomatchCount}</b></span>`;
+
+      const statusLabel = { match: '匹配', skip: '跳过', ambiguous: '歧义', nomatch: '无匹配' };
+      const statusClass = { match: 'status-match', skip: 'status-skip', ambiguous: 'status-ambiguous', nomatch: 'status-nomatch' };
+
+      document.getElementById('batchVoicePreviewInline').innerHTML = `<table>
+        <thead><tr><th>文件名</th><th>匹配条目</th><th>类型</th><th>状态</th><th>备注</th></tr></thead>
+        <tbody>${batchVoiceMatches.map(m => `<tr>
+          <td>${m.file.name}</td>
+          <td>${m.entry ? `${m.entry.char}（${m.entry.pinyin}）` : '-'}</td>
+          <td>${m.parsed ? (m.parsed.type === 'char' ? '字音' : '释义') : '-'}</td>
+          <td class="${statusClass[m.status]}">${statusLabel[m.status]}</td>
+          <td style="font-size:12px;color:#999;">${m.reason}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+
+      document.getElementById('batchVoiceConfirmArea').style.display = matchCount > 0 ? '' : 'none';
+    }
+
+    async function doBatchVoiceUpload() {
+      const toUpload = batchVoiceMatches.filter(m => m.status === 'match');
+      if (toUpload.length === 0) { alert('没有可导入的文件'); return; }
+
+      const btn = document.querySelector('#batchVoiceConfirmArea .btn-save');
+      btn.disabled = true;
+      btn.textContent = '导入中...';
+
+      const formData = new FormData();
+      const mapping = [];
+      toUpload.forEach((m, idx) => {
+        formData.append('files', m.file);
+        mapping.push({ fileIndex: idx, entryId: m.entry.id, type: m.parsed.type });
+      });
+      formData.append('mapping', JSON.stringify(mapping));
+
+      try {
+        const res = await fetch('/api/pinyin/voice/batch', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${getToken()}` },
+          body: formData,
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert(`导入完成！成功 ${data.success} 个，失败 ${data.failed} 个`);
+          resetBatchVoiceState();
+          loadAll();
+        } else {
+          alert(data.error || '导入失败');
+        }
+      } catch {
+        alert('网络错误，导入失败');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '确认导入';
+      }
+    }
+
+    // 冲突策略切换时重新匹配
+    document.querySelectorAll('input[name="batchConflictInline"]').forEach(r => {
+      r.addEventListener('change', () => {
+        if (batchVoiceFileList.length > 0) processBatchVoiceFiles(batchVoiceFileList);
+      });
+    });
 
     checkAuth();
   </script>

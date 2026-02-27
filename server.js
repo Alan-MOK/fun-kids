@@ -14,11 +14,13 @@ app.use(express.json());
 
 // ========== 目录初始化 ==========
 const DATA_DIR = path.join(__dirname, 'data');
-const UPLOADS_DIR = path.join(__dirname, 'uploads', 'pinyin');
-const VOICE_DIR = path.join(__dirname, 'uploads', 'voice');
+const PINYIN_IMAGE_DIR = path.join(__dirname, 'uploads', 'pinyin_image');
+const VOICE_LETTER_DIR = path.join(__dirname, 'uploads', 'voice_letter');
+const VOICE_ENTRY_DIR = path.join(__dirname, 'uploads', 'voice_entry');
 fs.mkdirSync(DATA_DIR, { recursive: true });
-fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-fs.mkdirSync(VOICE_DIR, { recursive: true });
+fs.mkdirSync(PINYIN_IMAGE_DIR, { recursive: true });
+fs.mkdirSync(VOICE_LETTER_DIR, { recursive: true });
+fs.mkdirSync(VOICE_ENTRY_DIR, { recursive: true });
 
 // ========== SQLite 初始化 ==========
 const db = new Database(path.join(DATA_DIR, 'fun-kids.db'));
@@ -41,6 +43,12 @@ db.exec(`
   )
 `);
 
+// Migration: 添加语音字段
+try { db.exec('ALTER TABLE pinyin ADD COLUMN voice_char TEXT'); } catch(e) {}
+try { db.exec('ALTER TABLE pinyin ADD COLUMN voice_meaning TEXT'); } catch(e) {}
+// Migration: 添加整体认读音节标识
+try { db.exec('ALTER TABLE pinyin ADD COLUMN is_whole_syllable INTEGER DEFAULT 0'); } catch(e) {}
+
 // 检查是否为空，导入种子数据
 const count = db.prepare('SELECT COUNT(*) AS cnt FROM pinyin').get();
 if (count.cnt === 0) {
@@ -62,7 +70,8 @@ if (count.cnt === 0) {
 
 // ========== 静态文件 ==========
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.use('/voice', express.static(VOICE_DIR));
+app.use('/voice', express.static(VOICE_LETTER_DIR));
+app.use('/voice_entry', express.static(VOICE_ENTRY_DIR));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ========== Multer 文件上传配置 ==========
@@ -123,17 +132,6 @@ app.post('/api/auth/login', (req, res) => {
   res.json({ token, role });
 });
 
-// ========== TTS 配置接口 ==========
-app.get('/api/config/tts', (req, res) => {
-  const tts = config.BAIDU_TTS || {};
-  res.json({
-    token: tts.TOKEN || '',
-    per: tts.PER || 3,
-    apiKey: tts.API_KEY || '',
-    secretKey: tts.SECRET_KEY || '',
-  });
-});
-
 // ========== 拼音数据接口 ==========
 
 // 获取所有分类
@@ -147,6 +145,16 @@ app.get('/api/pinyin/stats', authenticate, (req, res) => {
   const total = db.prepare('SELECT COUNT(*) AS cnt FROM pinyin').get().cnt;
   const withImage = db.prepare("SELECT COUNT(*) AS cnt FROM pinyin WHERE image IS NOT NULL AND image != ''").get().cnt;
   res.json({ total, withImage, withoutImage: total - withImage });
+});
+
+app.get('/api/pinyin/voice-stats', authenticate, (req, res) => {
+  const total = db.prepare('SELECT COUNT(*) AS cnt FROM pinyin').get().cnt;
+  const withCharVoice = db.prepare("SELECT COUNT(*) AS cnt FROM pinyin WHERE voice_char IS NOT NULL AND voice_char != ''").get().cnt;
+  const withMeaningVoice = db.prepare("SELECT COUNT(*) AS cnt FROM pinyin WHERE voice_meaning IS NOT NULL AND voice_meaning != ''").get().cnt;
+  const voiceFiles = fs.readdirSync(VOICE_LETTER_DIR).filter(f => /\.(mp3|m4a|wav)$/i.test(f));
+  const initialFiles = voiceFiles.filter(f => f.startsWith('initial-')).length;
+  const finalFiles = voiceFiles.filter(f => f.startsWith('final-')).length;
+  res.json({ total, withCharVoice, withMeaningVoice, initialFiles, finalFiles, totalInitials: 23, totalFinals: 34 });
 });
 
 // 导出全部数据
@@ -202,7 +210,7 @@ app.get('/api/pinyin/:id', authenticate, (req, res) => {
 
 // 新增
 app.post('/api/pinyin', authenticate, requireAdmin, (req, res) => {
-  const { pinyin, initial, final: finalVal, tone, char, meaning, category, emoji } = req.body;
+  const { pinyin, initial, final: finalVal, tone, char, meaning, category, emoji, is_whole_syllable } = req.body;
   if (!pinyin || initial === undefined || !finalVal || !tone || !char) {
     return res.status(400).json({ error: '缺少必要字段' });
   }
@@ -212,9 +220,9 @@ app.post('/api/pinyin', authenticate, requireAdmin, (req, res) => {
     return res.status(409).json({ error: '该条目已存在' });
   }
   db.prepare(`
-    INSERT INTO pinyin (id, pinyin, initial, final, tone, char, meaning, category, emoji)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, pinyin, initial, finalVal, tone, char, meaning || '', category || '', emoji || '');
+    INSERT INTO pinyin (id, pinyin, initial, final, tone, char, meaning, category, emoji, is_whole_syllable)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, pinyin, initial, finalVal, tone, char, meaning || '', category || '', emoji || '', is_whole_syllable ? 1 : 0);
   const row = db.prepare('SELECT * FROM pinyin WHERE id = ?').get(id);
   res.status(201).json(row);
 });
@@ -224,9 +232,9 @@ app.put('/api/pinyin/:id', authenticate, requireAdmin, (req, res) => {
   const existing = db.prepare('SELECT * FROM pinyin WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: '未找到' });
 
-  const { pinyin, initial, final: finalVal, tone, char, meaning, category, emoji } = req.body;
+  const { pinyin, initial, final: finalVal, tone, char, meaning, category, emoji, is_whole_syllable } = req.body;
   db.prepare(`
-    UPDATE pinyin SET pinyin=?, initial=?, final=?, tone=?, char=?, meaning=?, category=?, emoji=?, updated_at=CURRENT_TIMESTAMP
+    UPDATE pinyin SET pinyin=?, initial=?, final=?, tone=?, char=?, meaning=?, category=?, emoji=?, is_whole_syllable=?, updated_at=CURRENT_TIMESTAMP
     WHERE id=?
   `).run(
     pinyin || existing.pinyin,
@@ -237,6 +245,7 @@ app.put('/api/pinyin/:id', authenticate, requireAdmin, (req, res) => {
     meaning !== undefined ? meaning : existing.meaning,
     category !== undefined ? category : existing.category,
     emoji !== undefined ? emoji : existing.emoji,
+    is_whole_syllable !== undefined ? (is_whole_syllable ? 1 : 0) : existing.is_whole_syllable,
     req.params.id
   );
   const row = db.prepare('SELECT * FROM pinyin WHERE id = ?').get(req.params.id);
@@ -250,7 +259,7 @@ app.delete('/api/pinyin/:id', authenticate, requireAdmin, (req, res) => {
 
   // 删除关联图片
   if (existing.image) {
-    const imgPath = path.join(UPLOADS_DIR, existing.image);
+    const imgPath = path.join(PINYIN_IMAGE_DIR, existing.image);
     if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
   }
 
@@ -267,7 +276,7 @@ app.post('/api/pinyin/:id/image', authenticate, requireAdmin, upload.single('ima
 
   // 删除旧图片
   if (existing.image) {
-    const oldPath = path.join(UPLOADS_DIR, existing.image);
+    const oldPath = path.join(PINYIN_IMAGE_DIR, existing.image);
     if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
   }
 
@@ -276,7 +285,7 @@ app.post('/api/pinyin/:id/image', authenticate, requireAdmin, upload.single('ima
   await sharp(req.file.buffer)
     .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
     .jpeg({ quality: 85 })
-    .toFile(path.join(UPLOADS_DIR, filename));
+    .toFile(path.join(PINYIN_IMAGE_DIR, filename));
 
   db.prepare('UPDATE pinyin SET image = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
     .run(filename, req.params.id);
@@ -291,12 +300,165 @@ app.delete('/api/pinyin/:id/image', authenticate, requireAdmin, (req, res) => {
   if (!existing) return res.status(404).json({ error: '未找到' });
 
   if (existing.image) {
-    const imgPath = path.join(UPLOADS_DIR, existing.image);
+    const imgPath = path.join(PINYIN_IMAGE_DIR, existing.image);
     if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
   }
 
   db.prepare('UPDATE pinyin SET image = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
     .run(req.params.id);
+  res.json({ success: true });
+});
+
+// ========== 拼音条目语音上传 ==========
+const voiceEntryUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (/^audio\//.test(file.mimetype) || /\.(mp3|m4a|wav)$/i.test(file.originalname)) {
+      cb(null, true);
+    } else {
+      cb(new Error('只能上传音频文件'));
+    }
+  },
+});
+
+// 批量上传条目语音（最多 200 个文件，每个 5MB）
+const voiceBatchUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024, files: 200 },
+  fileFilter: (req, file, cb) => {
+    if (/^audio\//.test(file.mimetype) || /\.(mp3|m4a|wav)$/i.test(file.originalname)) {
+      cb(null, true);
+    } else {
+      cb(new Error('只能上传音频文件'));
+    }
+  },
+});
+
+app.post('/api/pinyin/voice/batch', authenticate, requireAdmin, (req, res) => {
+  voiceBatchUpload.array('files', 200)(req, res, (err) => {
+    if (err) {
+      const msg = err.code === 'LIMIT_FILE_SIZE' ? '单个文件超过 5MB 限制'
+        : err.code === 'LIMIT_FILE_COUNT' ? '文件数量超过 200 个限制'
+        : err.message || '上传失败';
+      return res.status(400).json({ error: msg });
+    }
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: '没有收到文件' });
+    }
+
+    let mapping;
+    try {
+      mapping = JSON.parse(req.body.mapping);
+    } catch {
+      return res.status(400).json({ error: 'mapping 格式错误' });
+    }
+    if (!Array.isArray(mapping)) {
+      return res.status(400).json({ error: 'mapping 必须是数组' });
+    }
+
+    const selectStmt = db.prepare('SELECT * FROM pinyin WHERE id = ?');
+    const updateCharStmt = db.prepare('UPDATE pinyin SET voice_char = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+    const updateMeaningStmt = db.prepare('UPDATE pinyin SET voice_meaning = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+    const results = [];
+
+    for (const item of mapping) {
+      const { fileIndex, entryId, type } = item;
+      if (!['char', 'meaning'].includes(type)) {
+        results.push({ entryId, type, status: 'failed', error: '无效类型' });
+        continue;
+      }
+      const file = req.files[fileIndex];
+      if (!file) {
+        results.push({ entryId, type, status: 'failed', error: '文件缺失' });
+        continue;
+      }
+      const existing = selectStmt.get(entryId);
+      if (!existing) {
+        results.push({ entryId, type, status: 'failed', error: '条目不存在' });
+        continue;
+      }
+
+      // 删除旧文件
+      const col = type === 'char' ? 'voice_char' : 'voice_meaning';
+      const oldFile = existing[col];
+      if (oldFile) {
+        const oldPath = path.join(VOICE_ENTRY_DIR, oldFile);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+
+      // 保存新文件
+      const ext = path.extname(file.originalname).toLowerCase() || '.mp3';
+      const filename = `${type}_${Date.now()}_${crypto.randomBytes(4).toString('hex')}${ext}`;
+      fs.writeFileSync(path.join(VOICE_ENTRY_DIR, filename), file.buffer);
+
+      // 更新数据库
+      if (type === 'char') {
+        updateCharStmt.run(filename, entryId);
+      } else {
+        updateMeaningStmt.run(filename, entryId);
+      }
+      results.push({ entryId, type, status: 'success', filename });
+    }
+
+    const success = results.filter(r => r.status === 'success').length;
+    const failed = results.filter(r => r.status === 'failed').length;
+    res.json({ success, failed, total: mapping.length, details: results });
+  });
+});
+
+// 上传拼音条目语音（char=汉字发音, meaning=释义发音）
+app.post('/api/pinyin/:id/voice/:type', authenticate, requireAdmin, (req, res) => {
+  const { id, type } = req.params;
+  if (!['char', 'meaning'].includes(type)) {
+    return res.status(400).json({ error: '类型必须是 char 或 meaning' });
+  }
+  voiceEntryUpload.single('file')(req, res, (err) => {
+    if (err) {
+      const msg = err.code === 'LIMIT_FILE_SIZE' ? '文件超过 5MB 限制' : err.message || '上传失败';
+      return res.status(400).json({ error: msg });
+    }
+    const existing = db.prepare('SELECT * FROM pinyin WHERE id = ?').get(id);
+    if (!existing) return res.status(404).json({ error: '未找到' });
+    if (!req.file) return res.status(400).json({ error: '请选择音频文件' });
+
+    // 删除旧文件
+    const col = type === 'char' ? 'voice_char' : 'voice_meaning';
+    const oldFile = existing[col];
+    if (oldFile) {
+      const oldPath = path.join(VOICE_ENTRY_DIR, oldFile);
+      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    }
+
+    // 保存新文件
+    const ext = path.extname(req.file.originalname).toLowerCase() || '.mp3';
+    const filename = `${type}_${Date.now()}_${crypto.randomBytes(4).toString('hex')}${ext}`;
+    fs.writeFileSync(path.join(VOICE_ENTRY_DIR, filename), req.file.buffer);
+
+    db.prepare(`UPDATE pinyin SET ${col} = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+      .run(filename, id);
+    const row = db.prepare('SELECT * FROM pinyin WHERE id = ?').get(id);
+    res.json(row);
+  });
+});
+
+// 删除拼音条目语音
+app.delete('/api/pinyin/:id/voice/:type', authenticate, requireAdmin, (req, res) => {
+  const { id, type } = req.params;
+  if (!['char', 'meaning'].includes(type)) {
+    return res.status(400).json({ error: '类型必须是 char 或 meaning' });
+  }
+  const existing = db.prepare('SELECT * FROM pinyin WHERE id = ?').get(id);
+  if (!existing) return res.status(404).json({ error: '未找到' });
+
+  const col = type === 'char' ? 'voice_char' : 'voice_meaning';
+  const filename = existing[col];
+  if (filename) {
+    const filePath = path.join(VOICE_ENTRY_DIR, filename);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  }
+  db.prepare(`UPDATE pinyin SET ${col} = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+    .run(id);
   res.json({ success: true });
 });
 
@@ -312,12 +474,12 @@ app.post('/api/pinyin/import', authenticate, requireAdmin, (req, res) => {
       db.prepare('DELETE FROM pinyin').run();
     }
     const upsert = db.prepare(`
-      INSERT OR REPLACE INTO pinyin (id, pinyin, initial, final, tone, char, meaning, category, emoji, image)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT OR REPLACE INTO pinyin (id, pinyin, initial, final, tone, char, meaning, category, emoji, image, is_whole_syllable, voice_char, voice_meaning)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const item of data) {
       const id = item.id || `${item.initial || '_'}-${item.final}-${item.tone}-${item.char}`;
-      upsert.run(id, item.pinyin, item.initial, item.final, item.tone, item.char, item.meaning || '', item.category || '', item.emoji || '', item.image || null);
+      upsert.run(id, item.pinyin, item.initial, item.final, item.tone, item.char, item.meaning || '', item.category || '', item.emoji || '', item.image || null, item.is_whole_syllable ? 1 : 0, item.voice_char || null, item.voice_meaning || null);
     }
   });
   tx();
@@ -330,6 +492,8 @@ app.post('/api/pinyin/import', authenticate, requireAdmin, (req, res) => {
 app.post('/api/pinyin/reset', authenticate, requireAdmin, (req, res) => {
   const tx = db.transaction(() => {
     db.prepare('DELETE FROM pinyin').run();
+    // 清除缓存并重新加载种子数据，确保获取最新的数据
+    delete require.cache[require.resolve('./data/pinyin-seed')];
     const seedData = require('./data/pinyin-seed');
     const insert = db.prepare(`
       INSERT INTO pinyin (id, pinyin, initial, final, tone, char, meaning, category, emoji)
@@ -348,22 +512,22 @@ app.post('/api/pinyin/reset', authenticate, requireAdmin, (req, res) => {
 // ========== 语音录音接口 ==========
 const voiceUpload = multer({
   storage: multer.diskStorage({
-    destination: VOICE_DIR,
+    destination: VOICE_LETTER_DIR,
     filename: (req, file, cb) => cb(null, req.params.filename),
   }),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (req, file, cb) => {
-    if (/^audio\/(mpeg|mp3)$/.test(file.mimetype) || /\.mp3$/i.test(file.originalname)) {
+    if (/^audio\//.test(file.mimetype) || /\.(mp3|m4a|wav)$/i.test(file.originalname)) {
       cb(null, true);
     } else {
-      cb(new Error('只能上传 MP3 文件'));
+      cb(new Error('只能上传音频文件（MP3/M4A/WAV）'));
     }
   },
 });
 
 // 获取已上传的语音文件列表
 app.get('/api/voice', (req, res) => {
-  const files = fs.readdirSync(VOICE_DIR).filter(f => f.endsWith('.mp3'));
+  const files = fs.readdirSync(VOICE_LETTER_DIR).filter(f => /\.(mp3|m4a|wav)$/i.test(f));
   res.json(files);
 });
 
@@ -371,7 +535,7 @@ app.get('/api/voice', (req, res) => {
 app.post('/api/voice/:filename', authenticate, requireAdmin, (req, res, next) => {
   // 校验文件名格式
   const fn = req.params.filename;
-  if (!/^(initial-[a-z]{1,2}|final-[a-zü]{1,4}-[1-4])\.mp3$/.test(fn)) {
+  if (!/^(initial-[a-z]{1,2}|final-[a-zü]{1,5}-[1-4])\.(mp3|m4a|wav)$/i.test(fn)) {
     return res.status(400).json({ error: '文件名格式不正确' });
   }
   next();
@@ -389,7 +553,7 @@ app.post('/api/voice/:filename', authenticate, requireAdmin, (req, res, next) =>
 
 // 删除语音文件
 app.delete('/api/voice/:filename', authenticate, requireAdmin, (req, res) => {
-  const filePath = path.join(VOICE_DIR, req.params.filename);
+  const filePath = path.join(VOICE_LETTER_DIR, req.params.filename);
   if (!fs.existsSync(filePath)) return res.status(404).json({ error: '文件不存在' });
   fs.unlinkSync(filePath);
   res.json({ success: true });

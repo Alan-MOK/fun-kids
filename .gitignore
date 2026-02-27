@@ -2,7 +2,8 @@ node_modules/
 data/fun-kids.db
 data/fun-kids.db-shm
 data/fun-kids.db-wal
-uploads/pinyin/*
-uploads/voice/*
+uploads/pinyin_image/*
+uploads/voice_letter/*
+uploads/voice_entry/*
 config.js
 .DS_Store

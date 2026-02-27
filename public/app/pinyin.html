@@ -416,18 +416,59 @@
   's': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'en', 'eng', 'i', 'ong', 'ou', 'u', 'uan', 'ui', 'un', 'uo']
 };
 
-
+  // 韵母-声母兼容规则（完整手工整理版）
+  // 韵母 'v' 代表 ü，'vn' 代表 ün，'ue' 代表 üe
+  // 韵母 'er' 没有与之相拼的声母，因此数组为空
+  const FINAL_INITIAL_MAP = {
+    'a': ['b','p','m','f','d','t','n','l','g','k','h','zh','ch','sh','z','c','s'],
+    'o': ['b','p','m','f'],
+    'e': ['m','d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s'],
+    'i': ['b','p','m','d','t','n','l','j','q','x','zh','ch','sh','r','z','c','s'],
+    'u': ['b','p','m','f','d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s'],
+    'v': ['n','l','j','q','x'],
+    'ai': ['b','p','m','d','t','n','l','g','k','h','zh','ch','sh','z','c','s'],
+    'ei': ['b','p','m','f','d','t','n','l','g','k','h','z'],
+    'ui': ['d','t','g','k','h','zh','ch','sh','r','z','c','s'],
+    'ao': ['b','p','m','d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s'],
+    'ou': ['m','f','d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s'],
+    'iu': ['m','d','n','l','j','q','x'],
+    'ie': ['b','p','m','d','t','n','l','j','q','x'],
+    'ue': ['n','l','j','q','x'],
+    'er': [],
+    'an': ['b','p','m','f','d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s'],
+    'en': ['b','p','m','f','d','n','g','k','h','zh','ch','sh','r','z','c','s'],
+    'in': ['b','p','m','n','l','j','q','x'],
+    'un': ['d','t','l','g','k','h','zh','ch','sh','r','z','c','s'],
+    'vn': ['j','q','x'],
+    'ang': ['b','p','m','f','d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s'],
+    'eng': ['b','p','m','f','d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s'],
+    'ing': ['b','p','m','d','t','n','l','j','q','x'],
+    'ong': ['d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s'],
+    'ia': ['d','l','j','q','x'],
+    'iao': ['b','p','m','d','t','n','l','j','q','x'],
+    'ian': ['b','p','m','d','t','n','l','j','q','x'],
+    'iang': ['n','l','j','q','x'],
+    'iong': ['j','q','x'],
+    'ua': ['g','k','h','zh','ch','sh'],
+    'uo': ['d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s'],
+    'uai': ['g','k','h','zh','ch','sh'],
+    'uan': ['d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s'],
+    'uang': ['g','k','h','zh','ch','sh']
+  };
 
     let selectedInitial = null;
     let selectedFinal = null;
     let selectedTone = null;
     let currentItem = null;
     let readAloudMode = false;
+    let currentAudio = null;
+    let speakAborted = false;
 
     // 韵母内部名 → 音频文件名映射（v→ü）
     const FINAL_FILENAME = { 'v': 'ü', 'vn': 'ün', 'ue': 'üe' };
     function finalToFilename(f) { return FINAL_FILENAME[f] || f; }
 
+    // 切换点读模式开关，开启时自动选中一声
     function toggleReadAloud() {
       readAloudMode = document.getElementById('readAloudToggle').checked;
       if (readAloudMode && selectedTone === null) {
@@ -437,7 +478,7 @@
       }
     }
 
-    // 初始化按钮
+    // 初始化页面：渲染声母、韵母、声调按钮
     function init() {
       // 声母
       const ig = document.getElementById('initialGrid');
@@ -461,6 +502,7 @@
       ).join('');
     }
 
+    // 选中声母按钮，更新韵母可用状态，点读模式下自动播放声母发音
     function selectInitial(el, val) {
       document.querySelectorAll('[data-initial]').forEach(b => b.classList.remove('selected'));
       el.classList.add('selected');
@@ -471,15 +513,19 @@
       }
     }
 
+    // 选中韵母按钮，更新声母可用状态，点读模式下自动播放韵母发音
     function selectFinal(el, val) {
       document.querySelectorAll('[data-final]').forEach(b => b.classList.remove('selected'));
       el.classList.add('selected');
       selectedFinal = val;
-      if (readAloudMode && selectedTone !== null) {
-        playVoiceFile(`final-${finalToFilename(val)}-${selectedTone}.mp3`);
+      updateInitialAvailability();
+      if (readAloudMode) {
+        const tone = selectedTone !== null ? selectedTone : 1;
+        playVoiceFile(`final-${finalToFilename(val)}-${tone}.mp3`);
       }
     }
 
+    // 选中声调按钮，点读模式下自动播放当前韵母对应声调的发音
     function selectTone(el, val) {
       document.querySelectorAll('[data-tone]').forEach(b => b.classList.remove('selected'));
       el.classList.add('selected');
@@ -489,6 +535,7 @@
       }
     }
 
+    // 根据已选声母，禁用不兼容的韵母按钮（灰显不可点击）
     function updateFinalAvailability() {
       document.querySelectorAll('[data-final]').forEach(btn => {
         btn.classList.remove('disabled');
@@ -510,6 +557,29 @@
       }
     }
 
+    // 根据已选韵母，禁用不兼容的声母按钮（灰显不可点击）
+    function updateInitialAvailability() {
+      document.querySelectorAll('[data-initial]').forEach(btn => {
+        btn.classList.remove('disabled');
+      });
+
+      if (selectedFinal !== null && FINAL_INITIAL_MAP[selectedFinal]) {
+        const allowed = FINAL_INITIAL_MAP[selectedFinal];
+        document.querySelectorAll('[data-initial]').forEach(btn => {
+          const i = btn.dataset.initial;
+          if (i === '') return; // 零声母始终可选
+          if (!allowed.includes(i)) {
+            btn.classList.add('disabled');
+            if (selectedInitial === i) {
+              selectedInitial = null;
+              btn.classList.remove('selected');
+            }
+          }
+        });
+      }
+    }
+
+    // 清除所有选中状态，重置声母、韵母、声调的选择
     function clearAll() {
       selectedInitial = null;
       selectedFinal = null;
@@ -521,22 +591,35 @@
 
     }
 
+    // 打开结果弹窗遮罩层
     function openResult() {
       document.getElementById('resultOverlay').classList.add('visible');
     }
+    // 关闭结果弹窗遮罩层，同时终止音频播放
     function closeResult() {
       document.getElementById('resultOverlay').classList.remove('visible');
-      if (currentTTSAudio) { currentTTSAudio.pause(); currentTTSAudio = null; }
+      stopAudio();
     }
+    // 终止当前音频播放和朗读链
+    function stopAudio() {
+      speakAborted = true;
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        currentAudio = null;
+      }
+    }
+    // 点击遮罩层背景区域时关闭弹窗（点击卡片本身不关闭）
     function closeResultOverlay(e) {
       if (e.target === document.getElementById('resultOverlay')) closeResult();
     }
 
-    // 声调标注
+    // 声调标注映射表（a→ā/á/ǎ/à 等）
     const toneMap = {
       'a': ['ā','á','ǎ','à'], 'o': ['ō','ó','ǒ','ò'], 'e': ['ē','é','ě','è'],
       'i': ['ī','í','ǐ','ì'], 'u': ['ū','ú','ǔ','ù'], 'v': ['ǖ','ǘ','ǚ','ǜ'],
     };
+    // 给韵母字符串加上声调符号，按 a>o>e>i>u>ü 优先级标注
     function addTone(finalStr, tone) {
       const priority = ['a','o','e','i','u','v'];
       for (const ch of priority) {
@@ -553,7 +636,7 @@
       return finalStr;
     }
 
-    // 组合查询
+    // 组合查询：根据已选的声母+韵母+声调，向后端请求匹配的拼音条目并展示结果
     async function combine() {
       if (selectedFinal === null) {
         showError('请先选择韵母哦~');
@@ -587,7 +670,15 @@
       }
     }
 
+    // 构建拼音拆解展示（如 b + ā + ˉ = bā），用于结果卡片顶部
     function buildBreakdown(item) {
+      if (item.is_whole_syllable) {
+        // 整体认读音节：直接显示拼音，不拆解
+        return `<div class="pinyin-breakdown">
+          <span class="result-py">${item.pinyin}</span>
+          <span style="font-size:14px;color:#999;margin-left:8px;">整体认读</span>
+        </div>`;
+      }
       const ini = item.initial || '';
       const fin = (FINAL_DISPLAY[item.final] || item.final);
       const toneLabel = ['ˉ','ˊ','ˇ','ˋ'][item.tone - 1];
@@ -602,13 +693,14 @@
       return `<div class="pinyin-breakdown">${parts.join('')}</div>`;
     }
 
+    // 展示查询结果卡片：显示拼音拆解、图片/emoji、汉字、释义和朗读按钮，自动朗读
     function showResult(item) {
       currentItem = item;
       const card = document.getElementById('resultCard');
       let imageHtml = '';
 
       if (item.image) {
-        imageHtml = `<img class="result-image" src="/uploads/pinyin/${item.image}" alt="${item.char}">`;
+        imageHtml = `<img class="result-image" src="/uploads/pinyin_image/${item.image}" alt="${item.char}">`;
       } else if (item.emoji) {
         imageHtml = `<div class="result-emoji">${item.emoji}</div>`;
       }
@@ -631,6 +723,7 @@
       setTimeout(() => speakFull(), 500);
     }
 
+    // 在结果弹窗中显示错误提示信息（如组合不存在、网络错误等）
     function showError(msg) {
       document.getElementById('resultCard').innerHTML = `
         <div class="result-error">
@@ -643,83 +736,81 @@
 
     // 播放 MP3 录音，返回 Promise
     function playVoiceFile(filename) {
+      const prefix = (filename.startsWith('initial-') || filename.startsWith('final-')) ? '/voice' : '/voice_entry';
       return new Promise((resolve) => {
-        const audio = new Audio(`/voice/${filename}`);
-        audio.onended = resolve;
-        audio.onerror = resolve; // 播放失败时跳过，不阻塞
-        audio.play().catch(resolve);
+        if (speakAborted) { resolve(); return; }
+        const audio = new Audio(`${prefix}/${filename}`);
+        currentAudio = audio;
+        audio.onended = () => { currentAudio = null; resolve(); };
+        audio.onerror = () => { currentAudio = null; resolve(); };
+        audio.play().catch(() => { currentAudio = null; resolve(); });
       });
     }
 
-    // 百度 TTS 配置（从服务端获取）
-    let BAIDU_TOKEN = '';
-    let BAIDU_PER = 3;
-    let currentTTSAudio = null;
-
-    fetch('/api/config/tts').then(r => r.json()).then(c => {
-      BAIDU_TOKEN = c.token;
-      BAIDU_PER = c.per;
-    }).catch(() => {});
-
-    // TTS 朗读单段文字，返回 Promise（百度 TTS）
-    function speakTTS(text) {
-      return new Promise((resolve) => {
-        if (currentTTSAudio) {
-          currentTTSAudio.pause();
-          currentTTSAudio = null;
-        }
-        const params = new URLSearchParams({
-          tex: text,
-          tok: BAIDU_TOKEN,
-          cuid: 'fun_kids_pinyin',
-          ctp: '1',
-          lan: 'zh',
-          spd: '5',
-          pit: '5',
-          vol: '15',
-          per: BAIDU_PER,
-          aue: '3',
-        });
-        const audio = new Audio(`https://tsn.baidu.com/text2audio?${params.toString()}`);
-        currentTTSAudio = audio;
-        audio.onended = () => { currentTTSAudio = null; resolve(); };
-        audio.onerror = () => { currentTTSAudio = null; resolve(); };
-        audio.play().catch(() => { currentTTSAudio = null; resolve(); });
-      });
+    // 朗读汉字发音
+    function speakChar(item) {
+      if (item.voice_char) return playVoiceFile(item.voice_char);
+      return Promise.resolve();
     }
 
-    // 朗读（完整版：字 → 声母录音 → 韵母代表字 → 字 → 意思）
+    // 朗读释义发音
+    function speakMeaning(item) {
+      if (item.voice_meaning) return playVoiceFile(item.voice_meaning);
+      return Promise.resolve();
+    }
+
+    // 朗读（整体认读音节：字 → 意思；普通：字 → 声母录音 → 韵母录音 → 字 → 意思）
     async function speakFull() {
       if (!currentItem) return;
-      if (currentTTSAudio) { currentTTSAudio.pause(); currentTTSAudio = null; }
+      speakAborted = false;
 
       const item = currentItem;
 
-      // 1. 朗读汉字
-      await speakTTS(item.char);
-      await new Promise(r => setTimeout(r, 500));
-
-      // 2. 声母：使用 MP3 录音
-      if (item.initial) {
-        await playVoiceFile(`initial-${item.initial}.mp3`);
+      if (item.is_whole_syllable) {
+        // 整体认读音节：字 → 意思
+        await speakChar(item);
+        if (speakAborted) return;
+        if (item.meaning) {
+          await new Promise(r => setTimeout(r, 500));
+          if (speakAborted) return;
+          await speakMeaning(item);
+        }
+      } else {
+        // 普通拼音：字 → 声母录音 → 韵母录音 → 字 → 意思
+        // 1. 朗读汉字
+        await speakChar(item);
+        if (speakAborted) return;
         await new Promise(r => setTimeout(r, 500));
-      }
+        if (speakAborted) return;
 
-      // 3. 韵母：使用 MP3 录音
-      await playVoiceFile(`final-${finalToFilename(item.final)}-${item.tone}.mp3`);
-      await new Promise(r => setTimeout(r, 500));
+        // 2. 声母：使用 MP3 录音
+        if (item.initial) {
+          await playVoiceFile(`initial-${item.initial}.mp3`);
+          if (speakAborted) return;
+          await new Promise(r => setTimeout(r, 500));
+          if (speakAborted) return;
+        }
 
-      // 4. 再次朗读汉字
-      await speakTTS(item.char);
-
-      // 5. 朗读意思
-      if (item.meaning) {
+        // 3. 韵母：使用 MP3 录音
+        await playVoiceFile(`final-${finalToFilename(item.final)}-${item.tone}.mp3`);
+        if (speakAborted) return;
         await new Promise(r => setTimeout(r, 500));
-        await speakTTS(item.meaning);
+        if (speakAborted) return;
+
+        // 4. 再次朗读汉字
+        await speakChar(item);
+        if (speakAborted) return;
+
+        // 5. 朗读意思
+        if (item.meaning) {
+          await new Promise(r => setTimeout(r, 500));
+          if (speakAborted) return;
+          await speakMeaning(item);
+        }
       }
     }
 
-    // 撒花
+    // 撒花动画效果：在结果卡片中生成彩色圆点掉落动画
     function spawnConfetti(container) {
       const colors = ['#FF6F00','#E91E63','#9C27B0','#4CAF50','#2196F3','#FFEB3B'];
       for (let i = 0; i < 20; i++) {
@@ -735,7 +826,7 @@
       }
     }
 
-    // 随机推荐
+    // 随机推荐：从全部拼音数据中随机抽一个，自动选中对应的声母/韵母/声调并展示结果
     async function randomPick() {
       try {
         const res = await fetch('/api/pinyin', {
@@ -765,7 +856,7 @@
       } catch {}
     }
 
-    // 登录
+    // 登录：提交密码验证，成功后保存 token 并显示主界面
     async function doLogin() {
       const pw = document.getElementById('loginPassword').value.trim();
       const err = document.getElementById('loginError');
@@ -785,6 +876,7 @@
     }
     document.getElementById('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
+    // 检查本地是否已有 token，有则跳过登录直接进入主界面
     function checkAuth() {
       if (localStorage.getItem(TOKEN_KEY)) {
         document.getElementById('loginOverlay').classList.add('hidden');
