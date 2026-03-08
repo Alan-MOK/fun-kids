@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>图片文件管理 - Fun Kids</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif; background: #F5F5F5; color: #333; min-height: 100vh; }
+
+    /* 登录 */
+    .login-overlay {
+      position: fixed; inset: 0; background: #F5F5F5;
+      display: flex; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .login-overlay.hidden { display: none; }
+    .login-box {
+      background: white; border-radius: 12px; padding: 40px 36px;
+      text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      max-width: 380px; width: 90%;
+    }
+    .login-box h2 { font-size: 22px; color: #333; margin-bottom: 24px; font-weight: 700; }
+    .login-box input {
+      width: 100%; padding: 12px 16px; font-size: 15px;
+      border: 1px solid #DDD; border-radius: 8px; outline: none;
+      font-family: inherit;
+    }
+    .login-box input:focus { border-color: #1976D2; }
+    .login-box button {
+      width: 100%; padding: 12px; margin-top: 16px; font-size: 15px; font-weight: 700;
+      background: #1976D2; color: white; border: none; border-radius: 8px; cursor: pointer;
+      font-family: inherit;
+    }
+    .login-box button:hover { background: #1565C0; }
+    .login-error { color: #F44336; margin-top: 10px; font-size: 13px; min-height: 18px; }
+
+    /* 主布局 */
+    .admin-app { display: none; }
+    .admin-app.visible { display: flex; min-height: 100vh; }
+
+    /* 顶部栏 */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; height: 56px;
+      background: white; border-bottom: 1px solid #E0E0E0;
+      display: flex; align-items: center; padding: 0 24px; z-index: 100;
+      gap: 16px;
+    }
+    .topbar-title { font-size: 18px; font-weight: 700; color: #333; }
+    .topbar-actions { margin-left: auto; display: flex; gap: 8px; }
+    .topbar-actions button {
+      padding: 8px 14px; font-size: 13px; border-radius: 6px; cursor: pointer;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+      font-family: inherit; border: 1px solid #DDD; background: white; color: #555;
+    }
+    .topbar-actions button:hover { background: #F5F5F5; }
+
+    /* 侧边栏 */
+    .sidebar {
+      position: fixed; top: 56px; left: 0; bottom: 0; width: 220px;
+      background: white; border-right: 1px solid #E0E0E0;
+      padding: 20px 16px; overflow-y: auto;
+    }
+    .sidebar h4 { font-size: 12px; color: #999; text-transform: uppercase; margin-bottom: 12px; font-weight: 700; }
+    .sidebar label {
+      display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+      border-radius: 6px; cursor: pointer; font-size: 14px; margin-bottom: 2px;
+    }
+    .sidebar label:hover { background: #F5F5F5; }
+    .sidebar label input { accent-color: #1976D2; }
+    .sidebar .divider { border-top: 1px solid #EEE; margin: 16px 0; }
+    .sidebar .count { font-size: 12px; color: #999; margin-left: auto; }
+    .sidebar button {
+      width: 100%; padding: 10px; margin-top: 12px; font-size: 14px; font-weight: 500;
+      background: #E3F2FD; color: #1976D2; border: none; border-radius: 8px; cursor: pointer;
+      font-family: inherit;
+    }
+    .sidebar button:hover { background: #BBDEFB; }
+    .sidebar .btn-warn-sidebar {
+      background: #FFF3E0; color: #E65100;
+    }
+    .sidebar .btn-warn-sidebar:hover { background: #FFE0B2; }
+
+    /* 主内容区 */
+    .main-content {
+      margin-left: 220px; margin-top: 56px; padding: 24px; flex: 1;
+    }
+
+    /* 统计卡片 */
+    .stats-cards {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;
+    }
+    .stat-card {
+      background: white; border-radius: 12px; padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .stat-card .stat-label { font-size: 13px; color: #999; margin-bottom: 8px; }
+    .stat-card .stat-value { font-size: 28px; font-weight: 700; color: #333; }
+    .stat-card .stat-sub { font-size: 12px; color: #999; margin-top: 4px; }
+    .stat-card.warn .stat-value { color: #E65100; }
+    .stat-card.danger .stat-value { color: #F44336; }
+    .stat-card.success .stat-value { color: #2E7D32; }
+
+    /* 搜索 */
+    .search-bar {
+      display: flex; gap: 12px; margin-bottom: 16px; align-items: center;
+    }
+    .search-bar input {
+      flex: 1; padding: 10px 16px; font-size: 14px;
+      border: 1px solid #DDD; border-radius: 8px; outline: none;
+      font-family: inherit;
+    }
+    .search-bar input:focus { border-color: #1976D2; }
+
+    /* 表格 */
+    .data-table {
+      width: 100%; background: white; border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden;
+    }
+    .data-table table { width: 100%; border-collapse: collapse; }
+    .data-table th {
+      text-align: left; padding: 12px 16px; font-size: 12px;
+      color: #999; font-weight: 700; background: #FAFAFA; border-bottom: 1px solid #EEE;
+    }
+    .data-table td {
+      padding: 10px 16px; font-size: 14px; border-bottom: 1px solid #F5F5F5;
+      vertical-align: middle;
+    }
+    .data-table tr:hover td { background: #FAFAFA; }
+    .data-table .actions { white-space: nowrap; }
+    .data-table .actions button {
+      padding: 4px 10px; font-size: 12px; border-radius: 4px; cursor: pointer;
+      border: 1px solid #DDD; background: white; margin-right: 6px;
+      font-family: inherit;
+    }
+    .data-table .actions .btn-view { color: #1976D2; }
+    .data-table .actions .btn-view:hover { background: #E3F2FD; }
+    .data-table .actions .btn-del { color: #F44336; }
+    .data-table .actions .btn-del:hover { background: #FFF5F5; }
+    .data-table .th-check { width: 40px; text-align: center; }
+    .data-table .td-check { text-align: center; }
+    .data-table .td-check input { accent-color: #1976D2; cursor: pointer; }
+
+    /* 标签 */
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+    .tag-orphan { background: #FFF3E0; color: #E65100; }
+    .tag-ref { background: #E8F5E9; color: #2E7D32; }
+    .tag-broken { background: #FFEBEE; color: #C62828; }
+
+    .ref-item { font-size: 13px; line-height: 1.6; }
+    .ref-item + .ref-item { margin-top: 2px; }
+
+    /* 缩略图 */
+    .thumb {
+      width: 48px; height: 48px; border-radius: 6px; object-fit: cover;
+      background: #F5F5F5; cursor: pointer; border: 1px solid #EEE;
+    }
+
+    /* 图片预览遮罩 */
+    .preview-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      display: none; align-items: center; justify-content: center; z-index: 500;
+      cursor: pointer;
+    }
+    .preview-overlay.visible { display: flex; }
+    .preview-overlay img {
+      max-width: 90vw; max-height: 90vh; border-radius: 12px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+    }
+
+    /* 浮动操作栏 */
+    .floating-bar {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: #333; color: white; border-radius: 12px; padding: 12px 24px;
+      display: none; align-items: center; gap: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2); z-index: 300;
+      font-size: 14px;
+    }
+    .floating-bar.visible { display: flex; }
+    .floating-bar .bar-count { font-weight: 700; }
+    .floating-bar button {
+      padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer;
+      font-size: 13px; font-weight: 600; font-family: inherit;
+    }
+    .floating-bar .btn-bar-del { background: #F44336; color: white; }
+    .floating-bar .btn-bar-del:hover { background: #D32F2F; }
+    .floating-bar .btn-bar-cancel { background: rgba(255,255,255,0.15); color: white; }
+    .floating-bar .btn-bar-cancel:hover { background: rgba(255,255,255,0.25); }
+
+    /* 空状态 */
+    .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+    .empty-state i { font-size: 48px; margin-bottom: 16px; color: #DDD; }
+    .empty-state p { font-size: 15px; }
+
+    /* 加载 */
+    .loading { text-align: center; padding: 60px; color: #999; font-size: 15px; }
+  </style>
+</head>
+<body>
+  <!-- 登录 -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-box">
+      <h2>管理员登录</h2>
+      <input type="password" id="loginPassword" placeholder="请输入管理员密码">
+      <button onclick="doLogin()">登录</button>
+      <div class="login-error" id="loginError"></div>
+    </div>
+  </div>
+
+  <!-- 管理界面 -->
+  <div class="admin-app" id="adminApp">
+    <!-- 顶部栏 -->
+    <div class="topbar">
+      <a href="/index.html" style="color:#1976D2;text-decoration:none;font-size:14px;"><i class="fas fa-arrow-left"></i> 返回主页</a>
+      <span class="topbar-title">图片文件管理</span>
+      <div class="topbar-actions">
+        <button onclick="loadAudit()"><i class="fas fa-sync-alt"></i> 刷新</button>
+      </div>
+    </div>
+
+    <!-- 侧边栏 -->
+    <div class="sidebar">
+      <h4>筛选</h4>
+      <label><input type="radio" name="filter" value="all" checked onchange="applyFilter()"><span>全部</span><span class="count" id="countAll">0</span></label>
+      <label><input type="radio" name="filter" value="referenced" onchange="applyFilter()"><span>已引用</span><span class="count" id="countRef">0</span></label>
+      <label><input type="radio" name="filter" value="orphaned" onchange="applyFilter()"><span>孤立文件</span><span class="count" id="countOrphan">0</span></label>
+      <label><input type="radio" name="filter" value="broken" onchange="applyFilter()"><span>失效引用</span><span class="count" id="countBroken">0</span></label>
+      <div class="divider"></div>
+      <h4>排序</h4>
+      <label><input type="radio" name="sort" value="filename" checked onchange="applyFilter()"><span>按文件名</span></label>
+      <label><input type="radio" name="sort" value="size" onchange="applyFilter()"><span>按大小</span></label>
+      <div class="divider"></div>
+      <button onclick="selectAllOrphans()"><i class="fas fa-check-double"></i> 全选孤立文件</button>
+      <button class="btn-warn-sidebar" onclick="fixBrokenRefs()"><i class="fas fa-wrench"></i> 修复失效引用</button>
+    </div>
+
+    <!-- 主内容 -->
+    <div class="main-content">
+      <!-- 统计卡片 -->
+      <div class="stats-cards">
+        <div class="stat-card">
+          <div class="stat-label">文件总数</div>
+          <div class="stat-value" id="statTotal">-</div>
+          <div class="stat-sub" id="statSize">-</div>
+        </div>
+        <div class="stat-card success">
+          <div class="stat-label">已引用</div>
+          <div class="stat-value" id="statReferenced">-</div>
+        </div>
+        <div class="stat-card warn">
+          <div class="stat-label">孤立文件</div>
+          <div class="stat-value" id="statOrphaned">-</div>
+          <div class="stat-sub">磁盘有文件但无条目引用</div>
+        </div>
+        <div class="stat-card danger">
+          <div class="stat-label">失效引用</div>
+          <div class="stat-value" id="statBroken">-</div>
+          <div class="stat-sub">条目引用了不存在的文件</div>
+        </div>
+      </div>
+
+      <!-- 搜索 -->
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="搜索文件名、汉字、拼音..." oninput="applyFilter()">
+      </div>
+
+      <!-- 表格 -->
+      <div class="data-table">
+        <table>
+          <thead>
+            <tr>
+              <th class="th-check"><input type="checkbox" id="checkAll" onchange="toggleCheckAll(this.checked)"></th>
+              <th>缩略图</th>
+              <th>文件名</th>
+              <th>大小</th>
+              <th>引用条目</th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr><td colspan="7" class="loading"><i class="fas fa-spinner fa-spin"></i> 加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 失效引用表格（筛选"失效引用"时显示） -->
+      <div class="data-table" id="brokenRefsTable" style="display:none; margin-top: 24px;">
+        <table>
+          <thead>
+            <tr>
+              <th>条目 ID</th>
+              <th>汉字</th>
+              <th>拼音</th>
+              <th>引用文件名</th>
+            </tr>
+          </thead>
+          <tbody id="brokenRefsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 图片预览 -->
+  <div class="preview-overlay" id="previewOverlay" onclick="closePreview()">
+    <img id="previewImg" src="" alt="预览">
+  </div>
+
+  <!-- 浮动操作栏 -->
+  <div class="floating-bar" id="floatingBar">
+    <span>已选择 <span class="bar-count" id="selectedCount">0</span> 个文件</span>
+    <button class="btn-bar-del" onclick="deleteSelected()"><i class="fas fa-trash"></i> 删除选中</button>
+    <button class="btn-bar-cancel" onclick="clearSelection()">取消</button>
+  </div>
+
+  <script>
+    const TOKEN_KEY = 'fun_kids_token';
+    const ROLE_KEY = 'fun_kids_role';
+    let auditData = null;
+    let selectedFiles = new Set();
+
+    function getToken() { return localStorage.getItem(TOKEN_KEY); }
+    function authHeaders() { return { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' }; }
+
+    // 登录
+    async function doLogin() {
+      const pw = document.getElementById('loginPassword').value.trim();
+      const err = document.getElementById('loginError');
+      if (!pw) { err.textContent = '请输入密码'; return; }
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pw, role: 'admin' }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          localStorage.setItem(TOKEN_KEY, data.token);
+          localStorage.setItem(ROLE_KEY, data.role);
+          document.getElementById('loginOverlay').classList.add('hidden');
+          document.getElementById('adminApp').classList.add('visible');
+          loadAudit();
+        } else { err.textContent = data.error; }
+      } catch { err.textContent = '网络错误'; }
+    }
+    document.getElementById('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+    function checkAuth() {
+      const token = getToken();
+      const role = localStorage.getItem(ROLE_KEY);
+      if (token && role === 'admin') {
+        document.getElementById('loginOverlay').classList.add('hidden');
+        document.getElementById('adminApp').classList.add('visible');
+        loadAudit();
+      }
+    }
+
+    // 加载审计数据
+    async function loadAudit() {
+      try {
+        const res = await fetch('/api/pinyin/image-audit', { headers: authHeaders() });
+        if (res.status === 401) { localStorage.removeItem(TOKEN_KEY); location.reload(); return; }
+        auditData = await res.json();
+        selectedFiles.clear();
+        updateStats();
+        applyFilter();
+      } catch {
+        document.getElementById('tableBody').innerHTML = '<tr><td colspan="7" class="loading" style="color:#F44336;">加载失败，请刷新重试</td></tr>';
+      }
+    }
+
+    // 格式化文件大小
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    // 更新统计
+    function updateStats() {
+      if (!auditData) return;
+      const s = auditData.summary;
+      document.getElementById('statTotal').textContent = s.totalFiles;
+      document.getElementById('statSize').textContent = '总大小 ' + formatSize(s.totalSize);
+      document.getElementById('statReferenced').textContent = s.referencedFiles;
+      document.getElementById('statOrphaned').textContent = s.orphanedFiles;
+      document.getElementById('statBroken').textContent = s.brokenRefs;
+      document.getElementById('countAll').textContent = s.totalFiles;
+      document.getElementById('countRef').textContent = s.referencedFiles;
+      document.getElementById('countOrphan').textContent = s.orphanedFiles;
+      document.getElementById('countBroken').textContent = s.brokenRefs;
+    }
+
+    // 筛选和渲染
+    function applyFilter() {
+      if (!auditData) return;
+      const filter = document.querySelector('input[name="filter"]:checked').value;
+      const sort = document.querySelector('input[name="sort"]:checked').value;
+      const search = document.getElementById('searchInput').value.trim().toLowerCase();
+
+      const orphanSet = new Set(auditData.orphanedFiles);
+      let files = auditData.files;
+
+      // 筛选
+      if (filter === 'referenced') {
+        files = files.filter(f => f.referencedBy.length > 0);
+      } else if (filter === 'orphaned') {
+        files = files.filter(f => orphanSet.has(f.filename));
+      }
+
+      // 搜索
+      if (search) {
+        files = files.filter(f => {
+          if (f.filename.toLowerCase().includes(search)) return true;
+          return f.referencedBy.some(r =>
+            r.char.includes(search) || r.pinyin.toLowerCase().includes(search) || r.id.toLowerCase().includes(search)
+          );
+        });
+      }
+
+      // 排序
+      files = [...files];
+      if (sort === 'size') {
+        files.sort((a, b) => b.size - a.size);
+      } else {
+        files.sort((a, b) => a.filename.localeCompare(b.filename));
+      }
+
+      // 渲染文件表格
+      const tbody = document.getElementById('tableBody');
+      if (files.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-images"></i><p>没有匹配的文件</p></div></td></tr>';
+      } else {
+        tbody.innerHTML = files.map(f => {
+          const isOrphan = orphanSet.has(f.filename);
+          const statusTag = isOrphan
+            ? '<span class="tag tag-orphan">无引用</span>'
+            : '<span class="tag tag-ref">已引用</span>';
+          const refs = f.referencedBy.length > 0
+            ? f.referencedBy.map(r => `<div class="ref-item">${r.char}（${r.pinyin}）</div>`).join('')
+            : '<span style="color:#CCC;">-</span>';
+          const checked = selectedFiles.has(f.filename) ? 'checked' : '';
+          const imgSrc = '/uploads/pinyin_image/' + encodeURIComponent(f.filename);
+          return `<tr>
+            <td class="td-check"><input type="checkbox" ${checked} onchange="toggleFile('${escapeAttr(f.filename)}', this.checked)"></td>
+            <td><img class="thumb" src="${imgSrc}" alt="${escapeHtml(f.filename)}" onclick="openPreview('${escapeAttr(imgSrc)}')" onerror="this.style.display='none'"></td>
+            <td style="font-size:12px;color:#666;word-break:break-all;">${escapeHtml(f.filename)}</td>
+            <td style="white-space:nowrap;">${formatSize(f.size)}</td>
+            <td>${refs}</td>
+            <td>${statusTag}</td>
+            <td class="actions">
+              <button class="btn-view" onclick="openPreview('${escapeAttr(imgSrc)}')"><i class="fas fa-eye"></i></button>
+              <button class="btn-del" onclick="deleteSingle('${escapeAttr(f.filename)}')"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>`;
+        }).join('');
+      }
+
+      // 失效引用表格
+      const brokenTable = document.getElementById('brokenRefsTable');
+      if (filter === 'broken' && auditData.brokenRefs.length > 0) {
+        brokenTable.style.display = '';
+        document.getElementById('brokenRefsBody').innerHTML = auditData.brokenRefs.map(r => `<tr>
+          <td style="font-size:12px;color:#666;">${escapeHtml(r.id)}</td>
+          <td>${escapeHtml(r.char)}</td>
+          <td>${escapeHtml(r.pinyin)}</td>
+          <td style="font-size:12px;color:#C62828;">${escapeHtml(r.filename)} <span class="tag tag-broken">文件不存在</span></td>
+        </tr>`).join('');
+      } else {
+        brokenTable.style.display = 'none';
+      }
+
+      updateFloatingBar();
+      document.getElementById('checkAll').checked = false;
+    }
+
+    // 转义辅助
+    function escapeHtml(str) {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+    function escapeAttr(str) {
+      return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+
+    // 图片预览
+    function openPreview(src) {
+      document.getElementById('previewImg').src = src;
+      document.getElementById('previewOverlay').classList.add('visible');
+    }
+    function closePreview() {
+      document.getElementById('previewOverlay').classList.remove('visible');
+      document.getElementById('previewImg').src = '';
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closePreview(); });
+
+    // 多选
+    function toggleFile(filename, checked) {
+      if (checked) selectedFiles.add(filename);
+      else selectedFiles.delete(filename);
+      updateFloatingBar();
+    }
+
+    function toggleCheckAll(checked) {
+      document.querySelectorAll('#tableBody .td-check input').forEach(cb => {
+        cb.checked = checked;
+        const filename = cb.getAttribute('onchange').match(/'([^']+)'/)[1];
+        if (checked) selectedFiles.add(filename);
+        else selectedFiles.delete(filename);
+      });
+      updateFloatingBar();
+    }
+
+    function selectAllOrphans() {
+      if (!auditData) return;
+      selectedFiles.clear();
+      auditData.orphanedFiles.forEach(f => selectedFiles.add(f));
+      document.querySelector('input[name="filter"][value="orphaned"]').checked = true;
+      applyFilter();
+      document.querySelectorAll('#tableBody .td-check input').forEach(cb => { cb.checked = true; });
+      updateFloatingBar();
+    }
+
+    function clearSelection() {
+      selectedFiles.clear();
+      document.querySelectorAll('#tableBody .td-check input').forEach(cb => { cb.checked = false; });
+      document.getElementById('checkAll').checked = false;
+      updateFloatingBar();
+    }
+
+    function updateFloatingBar() {
+      const bar = document.getElementById('floatingBar');
+      const count = selectedFiles.size;
+      document.getElementById('selectedCount').textContent = count;
+      if (count > 0) bar.classList.add('visible');
+      else bar.classList.remove('visible');
+    }
+
+    // 删除单个文件
+    async function deleteSingle(filename) {
+      if (!confirm(`确定要删除图片 ${filename} 吗？\n如果该文件被条目引用，引用也会被清除。`)) return;
+      try {
+        const res = await fetch('/api/pinyin/image-delete', {
+          method: 'POST', headers: authHeaders(),
+          body: JSON.stringify({ filenames: [filename] }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert(`已删除 ${data.deleted} 个文件` + (data.refsCleared > 0 ? `，清除 ${data.refsCleared} 个引用` : ''));
+          loadAudit();
+        } else { alert(data.error || '删除失败'); }
+      } catch { alert('网络错误'); }
+    }
+
+    // 批量删除选中
+    async function deleteSelected() {
+      const count = selectedFiles.size;
+      if (count === 0) return;
+      if (!confirm(`确定要删除选中的 ${count} 个图片吗？\n此操作不可恢复。相关的条目引用也会被清除。`)) return;
+      try {
+        const res = await fetch('/api/pinyin/image-delete', {
+          method: 'POST', headers: authHeaders(),
+          body: JSON.stringify({ filenames: [...selectedFiles] }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert(`已删除 ${data.deleted} 个文件` + (data.failed > 0 ? `，${data.failed} 个失败` : '') + (data.refsCleared > 0 ? `，清除 ${data.refsCleared} 个引用` : ''));
+          loadAudit();
+        } else { alert(data.error || '删除失败'); }
+      } catch { alert('网络错误'); }
+    }
+
+    // 修复失效引用
+    async function fixBrokenRefs() {
+      if (!auditData || auditData.summary.brokenRefs === 0) {
+        alert('没有需要修复的失效引用');
+        return;
+      }
+      if (!confirm(`将清除 ${auditData.summary.brokenRefs} 个指向不存在文件的数据库引用。\n这会将对应条目的图片字段设为空。确定继续？`)) return;
+      try {
+        const res = await fetch('/api/pinyin/image-fix-refs', {
+          method: 'POST', headers: authHeaders(),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert(`已修复 ${data.fixed} 个失效引用`);
+          loadAudit();
+        } else { alert(data.error || '修复失败'); }
+      } catch { alert('网络错误'); }
+    }
+
+    checkAuth();
+  </script>
+</body>
+</html>

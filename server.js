@@ -201,6 +201,221 @@ app.get('/api/pinyin', authenticate, (req, res) => {
   res.json(rows);
 });
 
+// ========== Voice Entry 文件审计与管理 ==========
+// 注意：这些路由必须在 /api/pinyin/:id 之前，否则会被 :id 通配符拦截
+
+// 审计：列出所有 voice_entry 文件并交叉比对数据库
+app.get('/api/pinyin/voice-entry-audit', authenticate, requireAdmin, (req, res) => {
+  const diskFiles = fs.readdirSync(VOICE_ENTRY_DIR).filter(f => /\.(mp3|m4a|wav)$/i.test(f));
+  const fileSizes = {};
+  for (const f of diskFiles) {
+    try { fileSizes[f] = fs.statSync(path.join(VOICE_ENTRY_DIR, f)).size; } catch { fileSizes[f] = 0; }
+  }
+
+  const rows = db.prepare("SELECT id, pinyin, char, voice_char, voice_meaning FROM pinyin WHERE voice_char IS NOT NULL OR voice_meaning IS NOT NULL").all();
+  const refMap = {};
+  for (const row of rows) {
+    if (row.voice_char) {
+      if (!refMap[row.voice_char]) refMap[row.voice_char] = [];
+      refMap[row.voice_char].push({ id: row.id, char: row.char, pinyin: row.pinyin, field: 'voice_char' });
+    }
+    if (row.voice_meaning) {
+      if (!refMap[row.voice_meaning]) refMap[row.voice_meaning] = [];
+      refMap[row.voice_meaning].push({ id: row.id, char: row.char, pinyin: row.pinyin, field: 'voice_meaning' });
+    }
+  }
+
+  const diskSet = new Set(diskFiles);
+  const files = diskFiles.map(f => ({
+    filename: f,
+    size: fileSizes[f],
+    referencedBy: refMap[f] || [],
+  }));
+
+  const orphanedFiles = diskFiles.filter(f => !refMap[f]);
+
+  const brokenRefs = [];
+  for (const row of rows) {
+    if (row.voice_char && !diskSet.has(row.voice_char)) {
+      brokenRefs.push({ id: row.id, char: row.char, pinyin: row.pinyin, field: 'voice_char', filename: row.voice_char });
+    }
+    if (row.voice_meaning && !diskSet.has(row.voice_meaning)) {
+      brokenRefs.push({ id: row.id, char: row.char, pinyin: row.pinyin, field: 'voice_meaning', filename: row.voice_meaning });
+    }
+  }
+
+  const totalSize = diskFiles.reduce((s, f) => s + (fileSizes[f] || 0), 0);
+  res.json({
+    files,
+    orphanedFiles,
+    brokenRefs,
+    summary: {
+      totalFiles: diskFiles.length,
+      referencedFiles: diskFiles.length - orphanedFiles.length,
+      orphanedFiles: orphanedFiles.length,
+      brokenRefs: brokenRefs.length,
+      totalSize,
+    },
+  });
+});
+
+// 批量删除指定的 voice_entry 文件
+app.post('/api/pinyin/voice-entry-delete', authenticate, requireAdmin, (req, res) => {
+  const { filenames } = req.body;
+  if (!Array.isArray(filenames) || filenames.length === 0) {
+    return res.status(400).json({ error: '请提供要删除的文件列表' });
+  }
+
+  const rows = db.prepare("SELECT id, voice_char, voice_meaning FROM pinyin WHERE voice_char IS NOT NULL OR voice_meaning IS NOT NULL").all();
+  const clearCharStmt = db.prepare('UPDATE pinyin SET voice_char = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+  const clearMeaningStmt = db.prepare('UPDATE pinyin SET voice_meaning = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+
+  let deleted = 0, failed = 0, refsCleared = 0;
+  for (const filename of filenames) {
+    if (filename.includes('/') || filename.includes('\\') || filename.includes('..')) {
+      failed++;
+      continue;
+    }
+    const filePath = path.join(VOICE_ENTRY_DIR, filename);
+    try {
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        deleted++;
+      } else {
+        failed++;
+        continue;
+      }
+    } catch {
+      failed++;
+      continue;
+    }
+    for (const row of rows) {
+      if (row.voice_char === filename) { clearCharStmt.run(row.id); refsCleared++; }
+      if (row.voice_meaning === filename) { clearMeaningStmt.run(row.id); refsCleared++; }
+    }
+  }
+  res.json({ deleted, failed, refsCleared });
+});
+
+// 修复失效引用
+app.post('/api/pinyin/voice-entry-fix-refs', authenticate, requireAdmin, (req, res) => {
+  const rows = db.prepare("SELECT id, voice_char, voice_meaning FROM pinyin WHERE voice_char IS NOT NULL OR voice_meaning IS NOT NULL").all();
+  const clearCharStmt = db.prepare('UPDATE pinyin SET voice_char = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+  const clearMeaningStmt = db.prepare('UPDATE pinyin SET voice_meaning = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+
+  let fixed = 0;
+  for (const row of rows) {
+    if (row.voice_char && !fs.existsSync(path.join(VOICE_ENTRY_DIR, row.voice_char))) {
+      clearCharStmt.run(row.id);
+      fixed++;
+    }
+    if (row.voice_meaning && !fs.existsSync(path.join(VOICE_ENTRY_DIR, row.voice_meaning))) {
+      clearMeaningStmt.run(row.id);
+      fixed++;
+    }
+  }
+  res.json({ fixed });
+});
+
+// ========== Pinyin Image 文件审计与管理 ==========
+
+// 审计：列出所有 pinyin_image 文件并交叉比对数据库
+app.get('/api/pinyin/image-audit', authenticate, requireAdmin, (req, res) => {
+  const diskFiles = fs.readdirSync(PINYIN_IMAGE_DIR).filter(f => /\.(jpg|jpeg|png|gif|webp)$/i.test(f));
+  const fileSizes = {};
+  for (const f of diskFiles) {
+    try { fileSizes[f] = fs.statSync(path.join(PINYIN_IMAGE_DIR, f)).size; } catch { fileSizes[f] = 0; }
+  }
+
+  const rows = db.prepare("SELECT id, pinyin, char, image FROM pinyin WHERE image IS NOT NULL AND image != ''").all();
+  const refMap = {};
+  for (const row of rows) {
+    if (!refMap[row.image]) refMap[row.image] = [];
+    refMap[row.image].push({ id: row.id, char: row.char, pinyin: row.pinyin });
+  }
+
+  const diskSet = new Set(diskFiles);
+  const files = diskFiles.map(f => ({
+    filename: f,
+    size: fileSizes[f],
+    referencedBy: refMap[f] || [],
+  }));
+
+  const orphanedFiles = diskFiles.filter(f => !refMap[f]);
+
+  const brokenRefs = [];
+  for (const row of rows) {
+    if (row.image && !diskSet.has(row.image)) {
+      brokenRefs.push({ id: row.id, char: row.char, pinyin: row.pinyin, filename: row.image });
+    }
+  }
+
+  const totalSize = diskFiles.reduce((s, f) => s + (fileSizes[f] || 0), 0);
+  res.json({
+    files,
+    orphanedFiles,
+    brokenRefs,
+    summary: {
+      totalFiles: diskFiles.length,
+      referencedFiles: diskFiles.length - orphanedFiles.length,
+      orphanedFiles: orphanedFiles.length,
+      brokenRefs: brokenRefs.length,
+      totalSize,
+    },
+  });
+});
+
+// 批量删除指定的 pinyin_image 文件
+app.post('/api/pinyin/image-delete', authenticate, requireAdmin, (req, res) => {
+  const { filenames } = req.body;
+  if (!Array.isArray(filenames) || filenames.length === 0) {
+    return res.status(400).json({ error: '请提供要删除的文件列表' });
+  }
+
+  const rows = db.prepare("SELECT id, image FROM pinyin WHERE image IS NOT NULL AND image != ''").all();
+  const clearImageStmt = db.prepare('UPDATE pinyin SET image = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+
+  let deleted = 0, failed = 0, refsCleared = 0;
+  for (const filename of filenames) {
+    if (filename.includes('/') || filename.includes('\\') || filename.includes('..')) {
+      failed++;
+      continue;
+    }
+    const filePath = path.join(PINYIN_IMAGE_DIR, filename);
+    try {
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        deleted++;
+      } else {
+        failed++;
+        continue;
+      }
+    } catch {
+      failed++;
+      continue;
+    }
+    for (const row of rows) {
+      if (row.image === filename) { clearImageStmt.run(row.id); refsCleared++; }
+    }
+  }
+  res.json({ deleted, failed, refsCleared });
+});
+
+// 修复失效图片引用
+app.post('/api/pinyin/image-fix-refs', authenticate, requireAdmin, (req, res) => {
+  const rows = db.prepare("SELECT id, image FROM pinyin WHERE image IS NOT NULL AND image != ''").all();
+  const clearImageStmt = db.prepare('UPDATE pinyin SET image = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+
+  let fixed = 0;
+  for (const row of rows) {
+    if (row.image && !fs.existsSync(path.join(PINYIN_IMAGE_DIR, row.image))) {
+      clearImageStmt.run(row.id);
+      fixed++;
+    }
+  }
+  res.json({ fixed });
+});
+
 // 获取单条
 app.get('/api/pinyin/:id', authenticate, (req, res) => {
   const row = db.prepare('SELECT * FROM pinyin WHERE id = ?').get(req.params.id);

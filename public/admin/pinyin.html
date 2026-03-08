@@ -585,7 +585,8 @@
         <div class="batch-voice-instructions">
           <b>文件命名规则：</b><br>
           汉字发音：<code>猫_char.mp3</code> &nbsp; 释义发音：<code>猫_meaning.mp3</code><br>
-          同字不同调消歧义：<code>猫1_char.mp3</code>（声调1）<br>
+          同字不同调消歧义：<code>只1_char.mp3</code>（只zhī，发一声）<br>
+          多音字拼音消歧义：<code>乐yue4_char.mp3</code>（区分 yuè/lè 等不同读音）<br>
           支持格式：.mp3 / .m4a / .wav
         </div>
         <div class="batch-voice-conflict">
@@ -1280,10 +1281,23 @@
     }
 
     function parseBatchVoiceFilename(filename) {
-      // 猫_char.mp3 | 猫_meaning.m4a | 猫1_char.mp3 | 大象_meaning.wav
-      const match = filename.match(/^(.+?)(\d)?_(char|meaning)\.(mp3|m4a|wav)$/i);
+      // 猫_char.mp3 | 猫_meaning.m4a | 猫1_char.mp3 | 乐yue4_char.mp3 | 大象_meaning.wav
+      const match = filename.match(/^(.+?)((?:[a-züv]+)?\d)?_(char|meaning)\.(mp3|m4a|wav)$/i);
       if (!match) return null;
-      return { char: match[1], tone: match[2] ? parseInt(match[2]) : null, type: match[3].toLowerCase() };
+      const disambig = match[2] || null;
+      let pinyin = null, tone = null;
+      if (disambig) {
+        const dm = disambig.match(/^([a-züv]+)?(\d)$/i);
+        if (dm) {
+          pinyin = dm[1] ? dm[1].toLowerCase().replace(/ü/g, 'v') : null;
+          tone = parseInt(dm[2]);
+        }
+      }
+      return { char: match[1], pinyin, tone, type: match[3].toLowerCase() };
+    }
+
+    function normalizePinyin(py) {
+      return py.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ü/g, 'v').toLowerCase();
     }
 
     function processBatchVoiceFiles(files) {
@@ -1312,16 +1326,42 @@
         let matched;
         if (candidates.length === 1) {
           matched = candidates[0];
+        } else if (parsed.pinyin) {
+          // 拼音消歧义：乐yue4_char.mp3
+          const filtered = candidates.filter(e => normalizePinyin(e.pinyin) === parsed.pinyin);
+          if (filtered.length === 1) {
+            matched = filtered[0];
+          } else if (filtered.length === 0) {
+            return { file, index, status: 'nomatch',
+              reason: `「${parsed.char}」没有拼音为 ${parsed.pinyin}${parsed.tone} 的条目（现有：${candidates.map(c => c.pinyin).join('/')}）`,
+              parsed, entry: null };
+          } else {
+            // 同拼音多条目（理论上极少见），再按声调筛
+            matched = filtered.find(e => e.tone === parsed.tone);
+            if (!matched) {
+              return { file, index, status: 'ambiguous',
+                reason: `「${parsed.char}」拼音 ${parsed.pinyin} 有多个声调（${filtered.map(c => c.pinyin).join('/')}）`,
+                parsed, entry: null };
+            }
+          }
         } else if (parsed.tone !== null) {
-          matched = candidates.find(e => e.tone === parsed.tone);
-          if (!matched) {
+          // 声调消歧义：猫1_char.mp3
+          const toneMatches = candidates.filter(e => e.tone === parsed.tone);
+          if (toneMatches.length === 1) {
+            matched = toneMatches[0];
+          } else if (toneMatches.length === 0) {
             return { file, index, status: 'ambiguous',
               reason: `「${parsed.char}」有 ${candidates.length} 个条目，声调 ${parsed.tone} 未找到`,
+              parsed, entry: null };
+          } else {
+            // 同字同调但不同拼音（如"乐" yuè4 / lè4），声调不够用
+            return { file, index, status: 'ambiguous',
+              reason: `「${parsed.char}」声调 ${parsed.tone} 有多个读音（${toneMatches.map(c => c.pinyin).join('/')}），请用拼音格式如 ${parsed.char}${normalizePinyin(toneMatches[0].pinyin)}${toneMatches[0].tone}_${parsed.type}.mp3`,
               parsed, entry: null };
           }
         } else {
           return { file, index, status: 'ambiguous',
-            reason: `「${parsed.char}」有 ${candidates.length} 个条目（${candidates.map(c => c.pinyin).join('/')}），请加声调数字`,
+            reason: `「${parsed.char}」有 ${candidates.length} 个读音（${candidates.map(c => c.pinyin).join('/')}），请用拼音格式如 ${parsed.char}${normalizePinyin(candidates[0].pinyin)}${candidates[0].tone}_${parsed.type}.mp3`,
             parsed, entry: null };
         }
 

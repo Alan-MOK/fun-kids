@@ -433,7 +433,7 @@
     'ou': ['m','f','d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s'],
     'iu': ['m','d','n','l','j','q','x'],
     'ie': ['b','p','m','d','t','n','l','j','q','x'],
-    'ue': ['n','l','j','q','x'],
+    'ue': ['n','l','j','q','x','y'],
     'er': [],
     'an': ['b','p','m','f','d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s'],
     'en': ['b','p','m','f','d','n','g','k','h','zh','ch','sh','r','z','c','s'],
@@ -735,10 +735,12 @@
     }
 
     // 播放 MP3 录音，返回 Promise
-    function playVoiceFile(filename) {
+    // checkAbort 参数：仅在 speakFull 链式朗读中传 true，点读模式单独播放时不检查 speakAborted
+    function playVoiceFile(filename, checkAbort = false) {
       const prefix = (filename.startsWith('initial-') || filename.startsWith('final-')) ? '/voice' : '/voice_entry';
       return new Promise((resolve) => {
-        if (speakAborted) { resolve(); return; }
+        if (checkAbort && speakAborted) { resolve(); return; }
+        stopAudio();
         const audio = new Audio(`${prefix}/${filename}`);
         currentAudio = audio;
         audio.onended = () => { currentAudio = null; resolve(); };
@@ -749,13 +751,13 @@
 
     // 朗读汉字发音
     function speakChar(item) {
-      if (item.voice_char) return playVoiceFile(item.voice_char);
+      if (item.voice_char) return playVoiceFile(item.voice_char, true);
       return Promise.resolve();
     }
 
     // 朗读释义发音
     function speakMeaning(item) {
-      if (item.voice_meaning) return playVoiceFile(item.voice_meaning);
+      if (item.voice_meaning) return playVoiceFile(item.voice_meaning, true);
       return Promise.resolve();
     }
 
@@ -785,14 +787,14 @@
 
         // 2. 声母：使用 MP3 录音
         if (item.initial) {
-          await playVoiceFile(`initial-${item.initial}.mp3`);
+          await playVoiceFile(`initial-${item.initial}.mp3`, true);
           if (speakAborted) return;
           await new Promise(r => setTimeout(r, 500));
           if (speakAborted) return;
         }
 
         // 3. 韵母：使用 MP3 录音
-        await playVoiceFile(`final-${finalToFilename(item.final)}-${item.tone}.mp3`);
+        await playVoiceFile(`final-${finalToFilename(item.final)}-${item.tone}.mp3`, true);
         if (speakAborted) return;
         await new Promise(r => setTimeout(r, 500));
         if (speakAborted) return;

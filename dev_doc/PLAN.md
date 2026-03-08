@@ -512,6 +512,11 @@ node server.js
 # 浏览器访问 http://localhost:3003
 ```
 
+## 杀服务
+lsof -i :3003
+kill <PID>
+
+
 ## 未来规划
 
 - 古诗词模块
