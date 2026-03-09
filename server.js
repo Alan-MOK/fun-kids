@@ -10,7 +10,19 @@ const crypto = require('crypto');
 const config = require('./config');
 
 const app = express();
+// app.set('trust proxy', 1);  出问题，首先排查这里
 app.use(express.json());
+
+const BASE_PATH = (config.BASE_PATH || '').replace(/\/+$/, '');
+
+if (BASE_PATH) {
+  app.use((req, res, next) => {
+    if (req.url === BASE_PATH || req.url.startsWith(`${BASE_PATH}/`)) {
+      req.url = req.url.slice(BASE_PATH.length) || '/';
+    }
+    next();
+  });
+}
 
 // ========== 目录初始化 ==========
 const DATA_DIR = path.join(__dirname, 'data');
@@ -69,6 +81,22 @@ if (count.cnt === 0) {
 }
 
 // ========== 静态文件 ==========
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'app', 'index.html'));
+});
+
+app.get('/index.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'app', 'index.html'));
+});
+
+app.get('/pinyin.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'app', 'pinyin.html'));
+});
+
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin', 'index.html'));
+});
+
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/voice', express.static(VOICE_LETTER_DIR));
 app.use('/voice_entry', express.static(VOICE_ENTRY_DIR));

@@ -143,6 +143,8 @@
 <input type="file" accept=".mp3,audio/mpeg" class="file-input-hidden" id="fileInput">
 
 <script>
+  const API_BASE = '/fun-kids/api';
+  const BASE_PATH = API_BASE.replace(/\/api$/, '');
   const INITIALS = ['b','p','m','f','d','t','n','l','g','k','h','j','q','x','zh','ch','sh','r','z','c','s','y','w'];
   const FINALS = ['a','o','e','i','u','ü','ai','ei','ui','ao','ou','iu','ie','üe','er','an','en','in','un','ün','ang','eng','ing','ong','ia','iao','ian','iang','iong','ua','uo','uai','uan','uang'];
 
@@ -155,7 +157,7 @@
     const pwd = document.getElementById('pwdInput').value;
     const errEl = document.getElementById('loginError');
     try {
-      const resp = await fetch('/api/auth/login', {
+      const resp = await fetch(API_BASE + '/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: pwd, role: 'admin' }),
@@ -176,7 +178,7 @@
 
   // 检查已有 token
   if (token) {
-    fetch('/api/voice', { headers: { Authorization: `Bearer ${token}` } })
+    fetch(API_BASE + '/voice', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => { if (r.ok) enterApp(); })
       .catch(() => {});
   }
@@ -184,7 +186,7 @@
   // ===== 加载文件列表 =====
   async function loadFiles() {
     try {
-      const resp = await fetch('/api/voice');
+      const resp = await fetch(API_BASE + '/voice');
       const files = await resp.json();
       uploadedFiles = new Set(files);
     } catch (e) { console.error('加载文件列表失败', e); }
@@ -275,7 +277,7 @@
     formData.append('file', file);
 
     try {
-      const resp = await fetch(`/api/voice/${pendingUpload}`, {
+      const resp = await fetch(API_BASE + `/voice/${pendingUpload}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -297,7 +299,7 @@
   let currentAudio = null;
   function playVoice(filename) {
     if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-    currentAudio = new Audio(`/voice/${filename}`);
+    currentAudio = new Audio(`${BASE_PATH}/voice/${encodeURIComponent(filename)}`);
     currentAudio.play().catch(() => alert('播放失败'));
   }
 
@@ -305,7 +307,7 @@
   async function delVoice(filename) {
     if (!confirm(`确定删除 ${filename}？`)) return;
     try {
-      const resp = await fetch(`/api/voice/${filename}`, {
+      const resp = await fetch(API_BASE + `/voice/${filename}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

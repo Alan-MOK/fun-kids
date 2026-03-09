@@ -211,7 +211,7 @@
   <div class="admin-app" id="adminApp">
     <!-- 顶部栏 -->
     <div class="topbar">
-      <a href="/index.html" style="color:#1976D2;text-decoration:none;font-size:14px;"><i class="fas fa-arrow-left"></i> 返回主页</a>
+      <a href="./index.html" style="color:#1976D2;text-decoration:none;font-size:14px;"><i class="fas fa-arrow-left"></i> 返回主页</a>
       <span class="topbar-title">图片文件管理</span>
       <div class="topbar-actions">
         <button onclick="loadAudit()"><i class="fas fa-sync-alt"></i> 刷新</button>
@@ -314,6 +314,8 @@
   </div>
 
   <script>
+    const API_BASE = '/fun-kids/api';
+    const BASE_PATH = API_BASE.replace(/\/api$/, '');
     const TOKEN_KEY = 'fun_kids_token';
     const ROLE_KEY = 'fun_kids_role';
     let auditData = null;
@@ -328,7 +330,7 @@
       const err = document.getElementById('loginError');
       if (!pw) { err.textContent = '请输入密码'; return; }
       try {
-        const res = await fetch('/api/auth/login', {
+        const res = await fetch(API_BASE + '/auth/login', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: pw, role: 'admin' }),
         });
@@ -357,7 +359,7 @@
     // 加载审计数据
     async function loadAudit() {
       try {
-        const res = await fetch('/api/pinyin/image-audit', { headers: authHeaders() });
+        const res = await fetch(API_BASE + '/pinyin/image-audit', { headers: authHeaders() });
         if (res.status === 401) { localStorage.removeItem(TOKEN_KEY); location.reload(); return; }
         auditData = await res.json();
         selectedFiles.clear();
@@ -439,7 +441,7 @@
             ? f.referencedBy.map(r => `<div class="ref-item">${r.char}（${r.pinyin}）</div>`).join('')
             : '<span style="color:#CCC;">-</span>';
           const checked = selectedFiles.has(f.filename) ? 'checked' : '';
-          const imgSrc = '/uploads/pinyin_image/' + encodeURIComponent(f.filename);
+          const imgSrc = BASE_PATH + '/uploads/pinyin_image/' + encodeURIComponent(f.filename);
           return `<tr>
             <td class="td-check"><input type="checkbox" ${checked} onchange="toggleFile('${escapeAttr(f.filename)}', this.checked)"></td>
             <td><img class="thumb" src="${imgSrc}" alt="${escapeHtml(f.filename)}" onclick="openPreview('${escapeAttr(imgSrc)}')" onerror="this.style.display='none'"></td>
@@ -540,7 +542,7 @@
     async function deleteSingle(filename) {
       if (!confirm(`确定要删除图片 ${filename} 吗？\n如果该文件被条目引用，引用也会被清除。`)) return;
       try {
-        const res = await fetch('/api/pinyin/image-delete', {
+        const res = await fetch(API_BASE + '/pinyin/image-delete', {
           method: 'POST', headers: authHeaders(),
           body: JSON.stringify({ filenames: [filename] }),
         });
@@ -558,7 +560,7 @@
       if (count === 0) return;
       if (!confirm(`确定要删除选中的 ${count} 个图片吗？\n此操作不可恢复。相关的条目引用也会被清除。`)) return;
       try {
-        const res = await fetch('/api/pinyin/image-delete', {
+        const res = await fetch(API_BASE + '/pinyin/image-delete', {
           method: 'POST', headers: authHeaders(),
           body: JSON.stringify({ filenames: [...selectedFiles] }),
         });
@@ -578,7 +580,7 @@
       }
       if (!confirm(`将清除 ${auditData.summary.brokenRefs} 个指向不存在文件的数据库引用。\n这会将对应条目的图片字段设为空。确定继续？`)) return;
       try {
-        const res = await fetch('/api/pinyin/image-fix-refs', {
+        const res = await fetch(API_BASE + '/pinyin/image-fix-refs', {
           method: 'POST', headers: authHeaders(),
         });
         const data = await res.json();

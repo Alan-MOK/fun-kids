@@ -360,7 +360,7 @@
   <div class="admin-app" id="adminApp">
     <!-- 顶部栏 -->
     <div class="topbar">
-      <a href="/index.html" style="color:#1976D2;text-decoration:none;font-size:14px;"><i class="fas fa-arrow-left"></i> 返回主页</a>
+      <a href="./index.html" style="color:#1976D2;text-decoration:none;font-size:14px;"><i class="fas fa-arrow-left"></i> 返回主页</a>
       <span class="topbar-title">拼音课程管理</span>
       <div class="topbar-actions">
         <button onclick="showVoiceModal()"><i class="fas fa-microphone"></i> 语音管理</button>
@@ -615,11 +615,10 @@
   </div>
 
   <script>
+    const API_BASE = '/fun-kids/api';
+    const BASE_PATH = API_BASE.replace(/\/api$/, '');
     const TOKEN_KEY = 'fun_kids_token';
     const ROLE_KEY = 'fun_kids_role';
-    let allData = [];
-    let categories = [];
-    let editingId = null;
     let searchTimer = null;
     let voiceFiles = []; // 已上传的声母/韵母语音文件列表
     let currentAudio = null;
@@ -637,7 +636,7 @@
       const err = document.getElementById('loginError');
       if (!pw) { err.textContent = '请输入密码'; return; }
       try {
-        const res = await fetch('/api/auth/login', {
+        const res = await fetch(API_BASE + '/auth/login', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: pw, role: 'admin' }),
         });
@@ -670,21 +669,21 @@
 
     async function loadVoiceFiles() {
       try {
-        const res = await fetch('/api/voice');
+        const res = await fetch(API_BASE + '/voice');
         voiceFiles = await res.json();
       } catch { voiceFiles = []; }
     }
 
     async function loadData() {
       const params = buildFilterParams();
-      const res = await fetch(`/api/pinyin?${params}`, { headers: authHeaders() });
+      const res = await fetch(API_BASE + `/pinyin?${params}`, { headers: authHeaders() });
       if (res.status === 401) { localStorage.clear(); location.reload(); return; }
       allData = await res.json();
       renderTable();
     }
 
     async function loadCategories() {
-      const res = await fetch('/api/pinyin/categories', { headers: authHeaders() });
+      const res = await fetch(API_BASE + '/pinyin/categories', { headers: authHeaders() });
       categories = await res.json();
       renderCategoryFilters();
       updateCategoryDatalist();
@@ -693,8 +692,8 @@
     async function loadStats() {
       try {
         const [statsRes, voiceStatsRes] = await Promise.all([
-          fetch('/api/pinyin/stats', { headers: authHeaders() }),
-          fetch('/api/pinyin/voice-stats', { headers: authHeaders() }),
+          fetch(API_BASE + '/pinyin/stats', { headers: authHeaders() }),
+          fetch(API_BASE + '/pinyin/voice-stats', { headers: authHeaders() }),
         ]);
         if (!statsRes.ok || !voiceStatsRes.ok) {
           console.error('Stats API error:', statsRes.status, voiceStatsRes.status);
@@ -757,7 +756,7 @@
           <td>${item.is_whole_syllable ? '✅' : ''}</td>
           <td>${item.category || '-'}</td>
           <td class="emoji-cell">${item.emoji || '-'}</td>
-          <td>${item.image ? `<img class="img-thumb" src="/uploads/pinyin_image/${item.image}">` : '<span class="no-img">缺</span>'}</td>
+          <td>${item.image ? `<img class="img-thumb" src="${BASE_PATH}/uploads/pinyin_image/${encodeURIComponent(item.image)}">` : '<span class="no-img">缺</span>'}</td>
           <td class="voice-status" title="字音/释义">
             <span class="voice-dot ${item.voice_char ? 'ok' : 'no'}" title="字音${item.voice_char ? '✓' : '✗'}"></span>
             <span class="voice-dot ${item.voice_meaning ? 'ok' : 'no'}" title="释义${item.voice_meaning ? '✓' : '✗'}"></span>
@@ -835,7 +834,7 @@
       const preview = document.getElementById('imgPreview');
       const placeholder = document.getElementById('imgPlaceholder');
       if (item.image) {
-        preview.src = `/uploads/pinyin_image/${item.image}`;
+        preview.src = `${BASE_PATH}/uploads/pinyin_image/${encodeURIComponent(item.image)}`;
         preview.style.display = 'block';
         placeholder.style.display = 'none';
       } else {
@@ -947,11 +946,11 @@
       try {
         let res;
         if (editingId) {
-          res = await fetch(`/api/pinyin/${editingId}`, {
+          res = await fetch(API_BASE + `/pinyin/${editingId}`, {
             method: 'PUT', headers: authHeaders(), body: JSON.stringify(body),
           });
         } else {
-          res = await fetch('/api/pinyin', {
+          res = await fetch(API_BASE + '/pinyin', {
             method: 'POST', headers: authHeaders(), body: JSON.stringify(body),
           });
         }
@@ -963,7 +962,7 @@
         if (imgFile) {
           const formData = new FormData();
           formData.append('image', imgFile);
-          await fetch(`/api/pinyin/${data.id}/image`, {
+          await fetch(API_BASE + `/pinyin/${data.id}/image`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${getToken()}` },
             body: formData,
@@ -983,7 +982,7 @@
       document.getElementById('confirmMsg').textContent = `确定要删除「${char}」吗？此操作不可恢复。`;
       document.getElementById('resetCodeBox').style.display = 'none';
       document.getElementById('confirmBtn').onclick = async () => {
-        await fetch(`/api/pinyin/${id}`, { method: 'DELETE', headers: authHeaders() });
+        await fetch(API_BASE + `/pinyin/${id}`, { method: 'DELETE', headers: authHeaders() });
         closeModal('confirmModal');
         loadAll();
       };
@@ -992,7 +991,7 @@
 
     // 导出
     async function exportData() {
-      const res = await fetch('/api/pinyin/export', { headers: authHeaders() });
+      const res = await fetch(API_BASE + '/pinyin/export', { headers: authHeaders() });
       const data = await res.json();
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
@@ -1010,7 +1009,7 @@
       try {
         const text = await file.text();
         const data = JSON.parse(text);
-        const res = await fetch('/api/pinyin/import', {
+        const res = await fetch(API_BASE + '/pinyin/import', {
           method: 'POST', headers: authHeaders(),
           body: JSON.stringify({ data: Array.isArray(data) ? data : [data], mode }),
         });
@@ -1054,7 +1053,7 @@
           alert('随机码错误，请重新输入。');
           return;
         }
-        await fetch('/api/pinyin/reset', { method: 'POST', headers: authHeaders() });
+        await fetch(API_BASE + '/pinyin/reset', { method: 'POST', headers: authHeaders() });
         closeModal('confirmModal');
         loadAll();
       };
@@ -1067,7 +1066,7 @@
       const formData = new FormData();
       formData.append('file', input.files[0]);
       try {
-        const res = await fetch(`/api/pinyin/${editingId}/voice/${type}`, {
+        const res = await fetch(API_BASE + `/pinyin/${editingId}/voice/${type}`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${getToken()}` },
           body: formData,
@@ -1088,7 +1087,7 @@
       if (!editingId) return;
       if (!confirm('确定删除该录音？')) return;
       try {
-        const res = await fetch(`/api/pinyin/${editingId}/voice/${type}`, {
+        const res = await fetch(API_BASE + `/pinyin/${editingId}/voice/${type}`, {
           method: 'DELETE', headers: authHeaders(),
         });
         if (res.ok) {
@@ -1109,7 +1108,7 @@
       if (!item) return;
       const filename = type === 'char' ? item.voice_char : item.voice_meaning;
       if (!filename) return;
-      playAudioFile(`/voice_entry/${filename}`);
+      playAudioFile(`${BASE_PATH}/voice_entry/${encodeURIComponent(filename)}`);
     }
 
     function playAudioFile(url) {
@@ -1161,7 +1160,7 @@
         return `<div class="voice-item">
           <span class="vi-name">${i}</span>
           <span class="vi-status">${has ? '✅' : '❌'}</span>
-          ${has ? `<button onclick="playAudioFile('/voice/${fn}')"><i class="fas fa-play"></i></button>` : ''}
+          ${has ? `<button onclick="playAudioFile('${BASE_PATH}/voice/${encodeURIComponent(fn)}')"><i class="fas fa-play"></i></button>` : ''}
           <input type="file" id="vf-${i}" accept="audio/*" style="display:none;" onchange="uploadBaseVoice('${fn}', this)">
           <button onclick="document.getElementById('vf-${i}').click()"><i class="fas fa-upload"></i></button>
           ${has ? `<button style="color:#F44336;" onclick="deleteBaseVoice('${fn}')"><i class="fas fa-trash"></i></button>` : ''}
@@ -1181,7 +1180,7 @@
           return `<span style="display:inline-flex;align-items:center;gap:2px;margin-right:4px;">
             <span style="font-size:11px;color:#999;">${t}声</span>
             <span>${has ? '✅' : '❌'}</span>
-            ${has ? `<button style="padding:1px 4px;font-size:10px;border:1px solid #DDD;border-radius:3px;cursor:pointer;background:white;" onclick="playAudioFile('/voice/${fn}')">▶</button>` : ''}
+            ${has ? `<button style="padding:1px 4px;font-size:10px;border:1px solid #DDD;border-radius:3px;cursor:pointer;background:white;" onclick="playAudioFile('${BASE_PATH}/voice/${encodeURIComponent(fn)}')">▶</button>` : ''}
             <input type="file" id="${inputId}" accept="audio/*" style="display:none;" onchange="uploadBaseVoice('${fn}', this)">
             <button style="padding:1px 4px;font-size:10px;border:1px solid #DDD;border-radius:3px;cursor:pointer;background:white;" onclick="document.getElementById('${inputId}').click()">↑</button>
           </span>`;
@@ -1198,7 +1197,7 @@
       const formData = new FormData();
       formData.append('file', input.files[0]);
       try {
-        const res = await fetch(`/api/voice/${filename}`, {
+        const res = await fetch(API_BASE + `/voice/${filename}`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${getToken()}` },
           body: formData,
@@ -1215,7 +1214,7 @@
     async function deleteBaseVoice(filename) {
       if (!confirm(`确定删除 ${filename}？`)) return;
       try {
-        await fetch(`/api/voice/${filename}`, { method: 'DELETE', headers: authHeaders() });
+        await fetch(API_BASE + `/voice/${filename}`, { method: 'DELETE', headers: authHeaders() });
         await loadVoiceFiles();
         renderVoiceGrids();
         loadStats();
@@ -1235,7 +1234,7 @@
         const formData = new FormData();
         formData.append('file', file);
         try {
-          const res = await fetch(`/api/voice/${fn}`, {
+          const res = await fetch(API_BASE + `/voice/${fn}`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${getToken()}` },
             body: formData,
@@ -1425,7 +1424,7 @@
       formData.append('mapping', JSON.stringify(mapping));
 
       try {
-        const res = await fetch('/api/pinyin/voice/batch', {
+        const res = await fetch(API_BASE + '/pinyin/voice/batch', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${getToken()}` },
           body: formData,

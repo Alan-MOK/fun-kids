@@ -125,6 +125,8 @@
   const FINALS = ['a','o','e','i','u','ü','ai','ei','ui','ao','ou','iu','ie','üe','er','an','en','in','un','ün','ang','eng','ing','ong','ia','iao','ian','iang','iong','ua','uo','uai','uan','uang'];
   const TONE_MARKS = ['ˉ', 'ˊ', 'ˇ', 'ˋ'];
 
+  const API_BASE = '/fun-kids/api';
+  const BASE_PATH = API_BASE.replace(/\/api$/, '');
   let uploadedFiles = new Set();
   let currentAudio = null;
 
@@ -134,7 +136,7 @@
   // 加载文件列表
   async function loadFiles() {
     try {
-      const resp = await fetch('/api/voice');
+      const resp = await fetch(API_BASE + '/voice');
       const files = await resp.json();
       uploadedFiles = new Set(files);
     } catch { console.error('加载失败'); }
@@ -148,7 +150,7 @@
     document.querySelectorAll('.playing').forEach(e => e.classList.remove('playing'));
     if (el) el.classList.add('playing');
 
-    currentAudio = new Audio(`/voice/${filename}`);
+    currentAudio = new Audio(`${BASE_PATH}/voice/${encodeURIComponent(filename)}`);
     currentAudio.onended = () => { if (el) el.classList.remove('playing'); currentAudio = null; };
     currentAudio.onerror = () => { if (el) el.classList.remove('playing'); currentAudio = null; };
     currentAudio.play().catch(() => { if (el) el.classList.remove('playing'); });

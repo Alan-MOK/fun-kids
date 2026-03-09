@@ -329,6 +329,8 @@
   </div>
 
   <script>
+    const API_BASE = '/fun-kids/api';
+    const BASE_PATH = API_BASE.replace(/\/api$/, '');
     const TOKEN_KEY = 'fun_kids_token';
 
     // 声母表
@@ -452,7 +454,7 @@
     'ua': ['g','k','h','zh','ch','sh'],
     'uo': ['d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s'],
     'uai': ['g','k','h','zh','ch','sh'],
-    'uan': ['d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s'],
+    'uan': ['d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s','y'],
     'uang': ['g','k','h','zh','ch','sh']
   };
 
@@ -598,11 +600,11 @@
     // 关闭结果弹窗遮罩层，同时终止音频播放
     function closeResult() {
       document.getElementById('resultOverlay').classList.remove('visible');
-      stopAudio();
+      stopAudio(true);
     }
-    // 终止当前音频播放和朗读链
-    function stopAudio() {
-      speakAborted = true;
+    // 终止当前音频播放；abortChain=true 时同时中止整条朗读链
+    function stopAudio(abortChain = false) {
+      if (abortChain) speakAborted = true;
       if (currentAudio) {
         currentAudio.pause();
         currentAudio.currentTime = 0;
@@ -653,7 +655,7 @@
       });
 
       try {
-        const res = await fetch(`/api/pinyin?${params}`, {
+        const res = await fetch(API_BASE + `/pinyin?${params}`, {
           headers: { 'Authorization': `Bearer ${localStorage.getItem(TOKEN_KEY)}` }
         });
         if (res.status === 401) { localStorage.clear(); location.reload(); return; }
@@ -700,7 +702,7 @@
       let imageHtml = '';
 
       if (item.image) {
-        imageHtml = `<img class="result-image" src="/uploads/pinyin_image/${item.image}" alt="${item.char}">`;
+        imageHtml = `<img class="result-image" src="${BASE_PATH}/uploads/pinyin_image/${encodeURIComponent(item.image)}" alt="${item.char}">`;
       } else if (item.emoji) {
         imageHtml = `<div class="result-emoji">${item.emoji}</div>`;
       }
@@ -740,8 +742,8 @@
       const prefix = (filename.startsWith('initial-') || filename.startsWith('final-')) ? '/voice' : '/voice_entry';
       return new Promise((resolve) => {
         if (checkAbort && speakAborted) { resolve(); return; }
-        stopAudio();
-        const audio = new Audio(`${prefix}/${filename}`);
+        stopAudio(false);
+        const audio = new Audio(`${BASE_PATH}${prefix}/${encodeURIComponent(filename)}`);
         currentAudio = audio;
         audio.onended = () => { currentAudio = null; resolve(); };
         audio.onerror = () => { currentAudio = null; resolve(); };
@@ -831,7 +833,7 @@
     // 随机推荐：从全部拼音数据中随机抽一个，自动选中对应的声母/韵母/声调并展示结果
     async function randomPick() {
       try {
-        const res = await fetch('/api/pinyin', {
+        const res = await fetch(API_BASE + '/pinyin', {
           headers: { 'Authorization': `Bearer ${localStorage.getItem(TOKEN_KEY)}` }
         });
         const data = await res.json();
@@ -864,7 +866,7 @@
       const err = document.getElementById('loginError');
       if (!pw) { err.textContent = '请输入密码哦~'; return; }
       try {
-        const res = await fetch('/api/auth/login', {
+        const res = await fetch(API_BASE + '/auth/login', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: pw, role: 'user' }),
         });

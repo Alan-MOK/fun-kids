@@ -203,7 +203,7 @@
   <div class="admin-app" id="adminApp">
     <!-- 顶部栏 -->
     <div class="topbar">
-      <a href="/index.html" style="color:#1976D2;text-decoration:none;font-size:14px;"><i class="fas fa-arrow-left"></i> 返回主页</a>
+      <a href="./index.html" style="color:#1976D2;text-decoration:none;font-size:14px;"><i class="fas fa-arrow-left"></i> 返回主页</a>
       <span class="topbar-title">语音文件管理</span>
       <div class="topbar-actions">
         <button onclick="loadAudit()"><i class="fas fa-sync-alt"></i> 刷新</button>
@@ -303,6 +303,8 @@
   </div>
 
   <script>
+    const API_BASE = '/fun-kids/api';
+    const BASE_PATH = API_BASE.replace(/\/api$/, '');
     const TOKEN_KEY = 'fun_kids_token';
     const ROLE_KEY = 'fun_kids_role';
     let auditData = null;
@@ -318,7 +320,7 @@
       const err = document.getElementById('loginError');
       if (!pw) { err.textContent = '请输入密码'; return; }
       try {
-        const res = await fetch('/api/auth/login', {
+        const res = await fetch(API_BASE + '/auth/login', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: pw, role: 'admin' }),
         });
@@ -347,7 +349,7 @@
     // 加载审计数据
     async function loadAudit() {
       try {
-        const res = await fetch('/api/pinyin/voice-entry-audit', { headers: authHeaders() });
+        const res = await fetch(API_BASE + '/pinyin/voice-entry-audit', { headers: authHeaders() });
         if (res.status === 401) { localStorage.removeItem(TOKEN_KEY); location.reload(); return; }
         auditData = await res.json();
         selectedFiles.clear();
@@ -482,7 +484,7 @@
       // 还原所有按钮
       document.querySelectorAll('.btn-play').forEach(b => { b.innerHTML = '<i class="fas fa-play"></i>'; });
 
-      const audio = new Audio('/voice_entry/' + filename);
+      const audio = new Audio(BASE_PATH + '/voice_entry/' + encodeURIComponent(filename));
       btn.innerHTML = '<i class="fas fa-stop"></i>';
       audio.play();
       audio.onended = () => { btn.innerHTML = '<i class="fas fa-play"></i>'; currentAudio = null; };
@@ -539,7 +541,7 @@
     async function deleteSingle(filename) {
       if (!confirm(`确定要删除文件 ${filename} 吗？\n如果该文件被条目引用，引用也会被清除。`)) return;
       try {
-        const res = await fetch('/api/pinyin/voice-entry-delete', {
+        const res = await fetch(API_BASE + '/pinyin/voice-entry-delete', {
           method: 'POST', headers: authHeaders(),
           body: JSON.stringify({ filenames: [filename] }),
         });
@@ -557,7 +559,7 @@
       if (count === 0) return;
       if (!confirm(`确定要删除选中的 ${count} 个文件吗？\n此操作不可恢复。相关的条目引用也会被清除。`)) return;
       try {
-        const res = await fetch('/api/pinyin/voice-entry-delete', {
+        const res = await fetch(API_BASE + '/pinyin/voice-entry-delete', {
           method: 'POST', headers: authHeaders(),
           body: JSON.stringify({ filenames: [...selectedFiles] }),
         });
@@ -577,7 +579,7 @@
       }
       if (!confirm(`将清除 ${auditData.summary.brokenRefs} 个指向不存在文件的数据库引用。\n这会将对应条目的语音字段设为空。确定继续？`)) return;
       try {
-        const res = await fetch('/api/pinyin/voice-entry-fix-refs', {
+        const res = await fetch(API_BASE + '/pinyin/voice-entry-fix-refs', {
           method: 'POST', headers: authHeaders(),
         });
         const data = await res.json();
