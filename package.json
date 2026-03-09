@@ -4,7 +4,9 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "setup": "cp -n 'config sample.js' config.js 2>/dev/null || echo 'config.js 已存在，跳过'"
   },
   "keywords": [],
   "author": "",

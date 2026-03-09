@@ -125,8 +125,9 @@
   const FINALS = ['a','o','e','i','u','ü','ai','ei','ui','ao','ou','iu','ie','üe','er','an','en','in','un','ün','ang','eng','ing','ong','ia','iao','ian','iang','iong','ua','uo','uai','uan','uang'];
   const TONE_MARKS = ['ˉ', 'ˊ', 'ˇ', 'ˋ'];
 
-  const API_BASE = '/fun-kids/api';
-  const BASE_PATH = API_BASE.replace(/\/api$/, '');
+  // 自动检测：生产环境 /fun-kids/api，本地开发 /api
+  const BASE_PATH = window.location.pathname.replace(/\/(?:app\/|admin\/)?[^/]*$/, '').replace(/\/+$/, '');
+  const API_BASE = BASE_PATH + '/api';
   let uploadedFiles = new Set();
   let currentAudio = null;
 

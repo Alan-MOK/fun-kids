@@ -615,8 +615,9 @@
   </div>
 
   <script>
-    const API_BASE = '/fun-kids/api';
-    const BASE_PATH = API_BASE.replace(/\/api$/, '');
+    // 自动检测：生产环境 /fun-kids/api，本地开发 /api
+    const BASE_PATH = window.location.pathname.replace(/\/(?:app\/|admin\/)?[^/]*$/, '').replace(/\/+$/, '');
+    const API_BASE = BASE_PATH + '/api';
     const TOKEN_KEY = 'fun_kids_token';
     const ROLE_KEY = 'fun_kids_role';
     let searchTimer = null;
