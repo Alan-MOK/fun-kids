@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>拼音乐园 - Fun Kids</title>
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC&display=swap&text=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ%C4%81%C3%A1%C7%8E%C3%A0%C5%8D%C3%B3%C7%92%C3%B2%C4%93%C3%A9%C4%9B%C3%A8%C4%AB%C3%AD%C7%90%C3%AC%C5%AB%C3%BA%C7%94%C3%B9%C7%96%C7%98%C7%9A%C7%9C%C3%BC">
   <style>
@@ -59,7 +60,7 @@
     /* ===== 主内容 ===== */
     .app-content { display: none; }
     .app-content.visible { display: block; }
-    .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
 
     /* ===== 结果弹窗遮罩 ===== */
     .result-overlay {
@@ -129,7 +130,7 @@
       transition: transform 0.2s; animation: fadeInUp 0.7s;
     }
     .speak-btn:hover { transform: scale(1.1); }
-    .speak-btn:active { transform: scale(0.95); }
+    .speak-btn:active { transform: scale(0.90); }
 
     .result-error {
       font-size: 20px; color: #FF9800; font-weight: 500;
@@ -183,7 +184,13 @@
       transition: all 0.2s; position: relative;
       font-family: "LXGW WenKai TC", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
     }
-    .py-btn:hover { border-color: #FFB74D; background: #FFF8E1; transform: scale(1.05); }
+    .py-btn:hover { border-color: #FFB74D; background: #FFF8E1; transform: scale(1.15); }
+    [data-initial]:hover { border-color: #64B5F6; background: #E3F2FD; }
+    .py-btn[data-initial].selected {
+      border-color: #1E88E5; background: #1E88E5; color: white;
+      box-shadow: 0 4px 12px rgba(30,136,229,0.3);
+    }
+    .tone-btn:hover { transform: scale(1.05); border-color: #81C784; background: #E8F5E9; }
     .py-btn:active { transform: scale(0.95); }
     .py-btn.selected {
       border-color: #FF9800; background: #FF9800; color: white;
@@ -193,10 +200,37 @@
       opacity: 0.2; cursor: not-allowed;
       pointer-events: none;
     }
+    /* 介母按钮：粉红色边框 */
+    .py-btn.medial {
+      border-color: #E91E63; border-width: 2px;
+    }
+    .py-btn.medial:hover { border-color: #E91E63; background: #FCE4EC; }
+    .py-btn.medial.selected {
+      border-color: #E91E63; background: #E91E63; color: white;
+      box-shadow: 0 4px 12px rgba(233,30,99,0.3);
+    }
+    /* 介母+韵母组合按钮 */
+    .py-btn.medial-combo {
+      font-size: 22px; min-width: 93px; gap: 2px;
+    }
+    .py-btn.medial-combo .medial-part {
+      color: #E91E63; font-weight: 900;
+    }
+    .py-btn.medial-combo .plus-sign {
+      color: #CCC; margin: 0 2px; font-size: 16px;
+    }
+    .py-btn.medial-combo .final-part {
+      color: #333; font-weight: 700;
+    }
+    .py-btn.medial-combo.selected .medial-part,
+    .py-btn.medial-combo.selected .plus-sign,
+    .py-btn.medial-combo.selected .final-part {
+      color: white;
+    }
 
     /* 声调按钮 */
     .tone-btn {
-      min-width: 100px; padding: 0 16px;
+      min-width: 100px; padding: 0 16px; flex: 1;
     }
     .tone-btn.selected { background: #4CAF50; border-color: #4CAF50; color: white; box-shadow: 0 4px 12px rgba(76,175,80,0.3); }
 
@@ -207,28 +241,32 @@
     .action-btn {
       padding: 16px 48px; border-radius: 20px; font-size: 22px; font-weight: 900;
       border: none; cursor: pointer; transition: all 0.2s;
+      box-shadow: 0 0px 8px rgba(0,0,0,0.10);
       font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
     }
     .btn-combine {
       background: linear-gradient(135deg, #FF9800, #FF5722);
       color: white; box-shadow: 0 6px 20px rgba(255,87,34,0.3);
     }
-    .btn-combine:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(255,87,34,0.4); }
-    .btn-combine:active { transform: translateY(0); }
-    .btn-clear {
-      background: #323232; color: #eee;
+    @media (hover: hover) {
+      .btn-combine:hover { transform: scale(1.10); box-shadow: 0 8px 28px rgba(255,87,34,0.4); }
+      .btn-clear:hover { transform: scale(1.10); }
+      .btn-random:hover { transform: scale(1.10); }
     }
-    .btn-clear:hover {transform: translateY(-2px); background: #323232; }
+    .btn-clear {
+      background: white; color: #555;
+    }
     .btn-random {
       background: linear-gradient(135deg, #9C27B0, #E91E63);
       color: white; box-shadow: 0 6px 20px rgba(156,39,176,0.3);
     }
-    .btn-random:hover { transform: translateY(-2px); }
+    .action-btn:active { transform: scale(0.9); }
 
     /* ===== 点读模式开关 ===== */
     .read-aloud-bar {
       display: flex; align-items: center; gap: 8px;
-      padding: 10px 20px; background: rgba(255,255,255,0.85); border-radius: 20px;
+      padding: 16px 20px; background: rgba(255,255,255,0.85); border-radius: 20px;
+      box-shadow: 0 0px 8px rgba(0,0,0,0.10);
       backdrop-filter: blur(6px);
     }
     .read-aloud-bar span { font-size: 15px; font-weight: 900; color: #666; }
@@ -347,17 +385,54 @@
     const FINALS = [
       'a','o','e','i','u','v',
       'ai','ei','ui','ao','ou','iu',
-      'ie','ue','er',
+      'ie','ve','er',
       'an','en','in','un','vn',
       'ang','eng','ing','ong',
       'ia','iao','ian','iang','iong',
       'ua','uo','uai','uan','uang'
     ];
 
-    // 韵母显示名（ü 替换 v）
-    const FINAL_DISPLAY = {
-      'v': 'ü', 'vn': 'ün', 'ue': 'üe'
+    // v→ü/u 统一显示函数
+    // 只有3种情况显示 ü：nü、lü、独立韵母 üe
+    function formatFinal(f, initial) {
+      if (!f || !f.includes('v')) return f;
+      // 无声母上下文（按钮标签）：v系显示为 ü 以区分 u系
+      if (initial === undefined || initial === null) {
+        return f.replace(/v/g, 'ü');
+      }
+      // n/l + v → nü, lü
+      if (f === 'v' && ['n', 'l'].includes(initial)) return 'ü';
+      // 零声母 + ve → üe
+      if (f === 've' && initial === '') return 'üe';
+      // 其他 v→u
+      return f.replace(/v/g, 'u');
+    }
+
+    // 介母
+    const MEDIALS = ['i', 'u', 'v'];
+
+    // 介母+普通韵母组合 → { medial, base }
+    const MEDIAL_COMBOS = {
+      'ia':   { medial: 'i', base: 'a' },
+      'iao':  { medial: 'i', base: 'ao' },
+      'ian':  { medial: 'i', base: 'an' },
+      'iang': { medial: 'i', base: 'ang' },
+      'iong': { medial: 'i', base: 'ong' },
+      'ua':   { medial: 'u', base: 'a' },
+      'uo':   { medial: 'u', base: 'o' },
+      'uai':  { medial: 'u', base: 'ai' },
+      'uan':  { medial: 'u', base: 'an' },
+      'uang': { medial: 'u', base: 'ang' },
     };
+
+    // 整体认读音节列表（前端兜底判断，不含声调）
+    const WHOLE_SYLLABLES = [
+      'zhi', 'chi', 'shi', 'ri',
+      'zi', 'ci', 'si',
+      'yi', 'wu', 'yu',
+      'ye', 'yue', 'yuan',
+      'yin', 'yun', 'ying'
+    ];
 
     // 声调
     const TONES = [
@@ -367,97 +442,85 @@
       { value: 4, label: 'ˋ 四声' },
     ];
 
-    // 声母-韵母兼容规则 【原版】
-    // const INITIAL_FINAL_RULES = {
-    //   'j': ['i','ia','ian','iang','iao','ie','in','ing','iong','iu','v','ue','vn'],
-    //   'q': ['i','ia','ian','iang','iao','ie','in','ing','iong','iu','v','ue','vn'],
-    //   'x': ['i','ia','ian','iang','iao','ie','in','ing','iong','iu','v','ue','vn'],
-    //   'zh': ['a','ai','an','ang','ao','e','en','eng','i','ong','ou','u','ua','uai','uan','uang','ui','un','uo'],
-    //   'ch': ['a','ai','an','ang','ao','e','en','eng','i','ong','ou','u','ua','uai','uan','uang','ui','un','uo'],
-    //   'sh': ['a','ai','an','ang','ao','e','en','eng','i','ou','u','ua','uai','uan','uang','ui','un','uo'],
-    //   'r': ['an','ang','e','en','eng','i','ong','ou','u','uan','ui','un','uo'],
-    //   'z': ['a','ai','an','ang','ao','e','ei','en','eng','i','ong','ou','u','uan','ui','un','uo'],
-    //   'c': ['a','ai','an','ang','ao','e','en','eng','i','ong','ou','u','uan','ui','un','uo'],
-    //   's': ['a','ai','an','ang','ao','e','en','eng','i','ong','ou','u','uan','ui','un','uo'],
-    // };
-
 
 //   // 声母-韵母兼容规则 【优化版，剔除极少使用的拼音组合】
   const INITIAL_FINAL_RULES = {
-  // 双唇音
-  'b': ['a', 'ai', 'an', 'ang', 'ao', 'ei', 'en', 'eng', 'i', 'ian', 'iao', 'ie', 'in', 'ing', 'o', 'u'],
-  'p': ['a', 'ai', 'an', 'ang', 'ao', 'ei', 'en', 'eng', 'i', 'ian', 'iao', 'ie', 'in', 'ing', 'o', 'u'],
-  'm': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'ei', 'en', 'eng', 'i', 'ian', 'iao', 'ie', 'in', 'ing', 'iu', 'o', 'ou', 'u'],
-
-  // 唇齿音
-  'f': ['a', 'an', 'ang', 'ei', 'en', 'eng', 'o', 'ou', 'u'],
-
+  // 唇音
+  'b': ['a','o','i','u','ai','ei','ao','ie','an','en','in','ang','eng','ing','iao','ian'],
+  'p': ['a','o','i','u','ai','ei','ao','ou','ie','an','en','in','ang','eng','ing','iao','ian'],
+  'm': ['a','o','e','i','u','ai','ei','ao','ou','iu','ie','an','en','in','ang','eng','ing','iao','ian'],
+  'f': ['a','o','u','ei','ou','an','en','ang','eng'],
   // 舌尖中音
-  'd': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'ei', 'en', 'eng', 'i', 'ia', 'ian', 'iao', 'ie', 'ing', 'iu', 'ong', 'ou', 'u', 'uan', 'ui', 'un', 'uo'],
-  't': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'ei', 'eng', 'i', 'ian', 'iao', 'ie', 'ing', 'ong', 'ou', 'u', 'uan', 'ui', 'un', 'uo'],
-  'n': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'ei', 'en', 'eng', 'i', 'ian', 'iang', 'iao', 'ie', 'in', 'ing', 'iu', 'ong', 'ou', 'u', 'uan', 'uo', 'v', 've'],
-  'l': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'ei', 'eng', 'i', 'ia', 'ian', 'iang', 'iao', 'ie', 'in', 'ing', 'iu', 'ong', 'ou', 'u', 'uan', 'un', 'uo', 'v', 've'],
-
+  'd': ['a','e','i','u','ai','ei','ui','ao','ou','iu','ie','an','un','ang','eng','ing','ong','ia','iao','ian','uo','uan'],
+  't': ['a','e','i','u','ai','ui','ao','ou','ie','an','un','ang','eng','ing','ong','iao','ian','uo','uan'],
+  'n': ['a','e','i','u','v','ai','ei','ao','iu','ie','ve','an','en','in','ang','eng','ing','ong','iao','ian','iang','uo','uan'],
+  'l': ['a','o','e','i','u','v','ai','ei','ao','ou','iu','ie','ve','an','in','un','ang','eng','ing','ong','ia','iao','ian','iang','uo','uan'],
   // 舌根音
-  'g': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'ei', 'en', 'eng', 'ong', 'ou', 'u', 'ua', 'uai', 'uan', 'uang', 'ui', 'un', 'uo'],
-  'k': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'ei', 'en', 'eng', 'ong', 'ou', 'u', 'ua', 'uai', 'uan', 'uang', 'ui', 'un', 'uo'],
-  'h': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'ei', 'en', 'eng', 'ong', 'ou', 'u', 'ua', 'uai', 'uan', 'uang', 'ui', 'un', 'uo'],
-
+  'g': ['a','e','u','ai','ei','ui','ao','ou','an','en','un','ang','eng','ong','ua','uo','uai','uan','uang'],
+  'k': ['a','e','u','ai','ui','ao','ou','an','en','un','ang','eng','ong','ua','uo','uai','uan','uang'],
+  'h': ['a','e','u','ai','ei','ui','ao','ou','an','en','un','ang','eng','ong','ua','uo','uai','uan','uang'],
   // 舌面音
-  'j': ['i', 'ia', 'ian', 'iang', 'iao', 'ie', 'in', 'ing', 'iong', 'iu', 'v', 'ue', 'vn'],
-  'q': ['i', 'ia', 'ian', 'iang', 'iao', 'ie', 'in', 'ing', 'iong', 'iu', 'v', 'ue', 'vn'],
-  'x': ['i', 'ia', 'ian', 'iang', 'iao', 'ie', 'in', 'ing', 'iong', 'iu', 'v', 'ue', 'vn'],
-
-  // 舌尖后音
-  'zh': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'en', 'eng', 'i', 'ong', 'ou', 'u', 'ua', 'uai', 'uan', 'uang', 'ui', 'un', 'uo'],
-  'ch': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'en', 'eng', 'i', 'ong', 'ou', 'u', 'ua', 'uai', 'uan', 'uang', 'ui', 'un', 'uo'],
-  'sh': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'en', 'eng', 'i', 'ou', 'u', 'ua', 'uai', 'uan', 'uang', 'ui', 'un', 'uo'],
-  'r': ['an', 'ang', 'ao', 'e', 'en', 'eng', 'i', 'ong', 'ou', 'u', 'uan', 'ui', 'un', 'uo'],
-
-  // 舌尖前音
-  'z': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'ei', 'en', 'eng', 'i', 'ong', 'ou', 'u', 'uan', 'ui', 'un', 'uo'],
-  'c': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'en', 'eng', 'i', 'ong', 'ou', 'u', 'uan', 'ui', 'un', 'uo'],
-  's': ['a', 'ai', 'an', 'ang', 'ao', 'e', 'en', 'eng', 'i', 'ong', 'ou', 'u', 'uan', 'ui', 'un', 'uo']
+  'j': ['i','u','iu','ie','ve','in','vn','ing','ia','iao','ian','iang','iong','uan'],
+  'q': ['i','u','iu','ie','ve','in','vn','ing','ia','iao','ian','iang','iong','uan'],
+  'x': ['i','u','iu','ie','ve','in','vn','ing','ia','iao','ian','iang','iong','uan'],
+  // 翘舌音
+  'zh': ['a','e','i','u','ai','ei','ui','ao','ou','an','en','un','ang','eng','ong','ua','uo','uai','uan','uang'],
+  'ch': ['a','e','i','u','ai','ui','ao','ou','an','en','un','ang','eng','ong','uo','uai','uan','uang'],
+  'sh': ['a','e','i','u','ai','ei','ui','ao','ou','an','en','un','ang','eng','ua','uo','uai','uan','uang'],
+  'r': ['e','i','u','ui','ao','ou','an','en','un','ang','eng','ong','uo','uan'],
+  // 平舌音
+  'z': ['a','e','i','u','ai','ei','ui','ao','ou','an','en','un','ang','eng','ong','uo','uan'],
+  'c': ['a','e','i','u','ai','ui','ao','ou','an','en','un','ang','eng','ong','uo','uan'],
+  's': ['a','e','i','u','ai','ui','ao','ou','an','en','un','ang','eng','ong','uo','uan'],
+  // 半元音
+  'y': ['a','o','e','i','u','ao','ou','ve','an','in','vn','ang','ing','ong','uan'],
+  'w': ['a','o','u','ai','ei','an','en','ang','eng'],
 };
 
   // 韵母-声母兼容规则（完整手工整理版）
   // 韵母 'v' 代表 ü，'vn' 代表 ün，'ue' 代表 üe
   // 韵母 'er' 没有与之相拼的声母，因此数组为空
   const FINAL_INITIAL_MAP = {
-    'a': ['b','p','m','f','d','t','n','l','g','k','h','zh','ch','sh','z','c','s'],
-    'o': ['b','p','m','f'],
-    'e': ['m','d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s'],
-    'i': ['b','p','m','d','t','n','l','j','q','x','zh','ch','sh','r','z','c','s'],
-    'u': ['b','p','m','f','d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s'],
-    'v': ['n','l','j','q','x'],
-    'ai': ['b','p','m','d','t','n','l','g','k','h','zh','ch','sh','z','c','s'],
-    'ei': ['b','p','m','f','d','t','n','l','g','k','h','z'],
+    // 单韵母
+    'a': ['b','p','m','f','d','t','n','l','g','k','h','zh','ch','sh','z','c','s','y','w'],
+    'o': ['b','p','m','f','l','y','w'],
+    'e': ['m','d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s','y'],
+    'i': ['b','p','m','d','t','n','l','j','q','x','zh','ch','sh','r','z','c','s','y'],
+    'u': ['b','p','m','f','d','t','n','l','g','k','h','j','q','x','zh','ch','sh','r','z','c','s','y','w'],
+    'v': ['n','l'],
+    // 复韵母
+    'ai': ['b','p','m','d','t','n','l','g','k','h','zh','ch','sh','z','c','s','w'],
+    'ei': ['b','p','m','f','d','n','l','g','h','zh','sh','z','w'],
     'ui': ['d','t','g','k','h','zh','ch','sh','r','z','c','s'],
-    'ao': ['b','p','m','d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s'],
-    'ou': ['m','f','d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s'],
+    'ao': ['b','p','m','d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s','y'],
+    'ou': ['p','m','f','d','t','l','g','k','h','zh','ch','sh','r','z','c','s','y'],
     'iu': ['m','d','n','l','j','q','x'],
     'ie': ['b','p','m','d','t','n','l','j','q','x'],
-    'ue': ['n','l','j','q','x','y'],
+    've': ['n','l','j','q','x','y'],
     'er': [],
-    'an': ['b','p','m','f','d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s'],
-    'en': ['b','p','m','f','d','n','g','k','h','zh','ch','sh','r','z','c','s'],
-    'in': ['b','p','m','n','l','j','q','x'],
+    // 前鼻韵母
+    'an': ['b','p','m','f','d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s','y','w'],
+    'en': ['b','p','m','f','n','g','k','h','zh','ch','sh','r','z','c','s','w'],
+    'in': ['b','p','m','n','l','j','q','x','y'],
     'un': ['d','t','l','g','k','h','zh','ch','sh','r','z','c','s'],
-    'vn': ['j','q','x'],
-    'ang': ['b','p','m','f','d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s'],
-    'eng': ['b','p','m','f','d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s'],
-    'ing': ['b','p','m','d','t','n','l','j','q','x'],
-    'ong': ['d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s'],
+    'vn': ['j','q','x','y'],
+    // 后鼻韵母
+    'ang': ['b','p','m','f','d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s','y','w'],
+    'eng': ['b','p','m','f','d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s','w'],
+    'ing': ['b','p','m','d','t','n','l','j','q','x','y'],
+    'ong': ['d','t','n','l','g','k','h','zh','ch','r','z','c','s','y'],
+    // i 介母组合
     'ia': ['d','l','j','q','x'],
     'iao': ['b','p','m','d','t','n','l','j','q','x'],
     'ian': ['b','p','m','d','t','n','l','j','q','x'],
     'iang': ['n','l','j','q','x'],
     'iong': ['j','q','x'],
-    'ua': ['g','k','h','zh','ch','sh'],
+    // u 介母组合
+    'ua': ['g','k','h','zh','sh'],
     'uo': ['d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s'],
     'uai': ['g','k','h','zh','ch','sh'],
-    'uan': ['d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s','y'],
-    'uang': ['g','k','h','zh','ch','sh']
+    'uan': ['d','t','n','l','g','k','h','j','q','x','zh','ch','sh','r','z','c','s','y'],
+    'uang': ['g','k','h','zh','ch','sh'],
   };
 
     let selectedInitial = null;
@@ -468,8 +531,19 @@
     let currentAudio = null;
     let speakAborted = false;
 
+    // 前端兜底：根据拼音判断是否整体认读音节
+    function checkWholeSyllable(item) {
+      if (item.is_whole_syllable) return item;
+      // 去掉声调符号，还原为无调拼音
+      const raw = (item.initial || '') + (item.final || '');
+      if (WHOLE_SYLLABLES.includes(raw)) {
+        item.is_whole_syllable = 1;
+      }
+      return item;
+    }
+
     // 韵母内部名 → 音频文件名映射（v→ü）
-    const FINAL_FILENAME = { 'v': 'ü', 'vn': 'ün', 'ue': 'üe' };
+    const FINAL_FILENAME = { 'v': 'ü', 'vn': 'ün', 'ue': 'üe', 've': 'üe' };
     function finalToFilename(f) { return FINAL_FILENAME[f] || f; }
 
     // 切换点读模式开关，开启时自动选中一声
@@ -495,8 +569,22 @@
       // 韵母
       const fg = document.getElementById('finalGrid');
       fg.innerHTML = FINALS.map(f => {
-        const display = FINAL_DISPLAY[f] || f;
-        return `<button class="py-btn" data-final="${f}" onclick="selectFinal(this, '${f}')">${display}</button>`;
+        const display = formatFinal(f);
+        const lineBreak = f === 'ia' ? '<div style="flex-basis:100%;height:0"></div>' : '';
+
+        if (MEDIAL_COMBOS[f]) {
+          // 介母+普通韵母组合：显示为 "i + ong" 格式
+          const combo = MEDIAL_COMBOS[f];
+          const medialDisplay = formatFinal(combo.medial);
+          const baseDisplay = formatFinal(combo.base);
+          return lineBreak + `<button class="py-btn medial-combo" data-final="${f}" onclick="selectFinal(this, '${f}')"><span class="medial-part">${medialDisplay}</span><span class="plus-sign">+</span><span class="final-part">${baseDisplay}</span></button>`;
+        } else if (MEDIALS.includes(f)) {
+          // 介母：粉红色边框
+          return `<button class="py-btn medial" data-final="${f}" onclick="selectFinal(this, '${f}')">${display}</button>`;
+        } else {
+          // 普通韵母：不变
+          return `<button class="py-btn" data-final="${f}" onclick="selectFinal(this, '${f}')">${display}</button>`;
+        }
       }).join('');
 
       // 声调
@@ -652,8 +740,13 @@
       }
 
       const initial = selectedInitial !== null ? selectedInitial : '';
+      // y + üe 在拼音正字法中简写为 yue，后端存 final=ue
+      let finalForApi = selectedFinal;
+      if (initial === 'y' && finalForApi === 've') {
+        finalForApi = 'ue';
+      }
       const params = new URLSearchParams({
-        initial, final: selectedFinal, tone: selectedTone
+        initial, final: finalForApi, tone: selectedTone
       });
 
       try {
@@ -664,9 +757,16 @@
         const data = await res.json();
 
         if (data.length > 0) {
-          showResult(data[0]);
+          showResult(checkWholeSyllable(data[0]));
         } else {
-          const pinyinStr = initial + addTone(selectedFinal, selectedTone);
+          // 根据声母上下文决定 v 显示为 ü 还是 u，再加声调
+          let finalForTone = selectedFinal;
+          if (selectedFinal.includes('v') && !formatFinal(selectedFinal, initial).includes('ü')) {
+            finalForTone = selectedFinal.replace(/v/g, 'u');
+          }
+          let displayFinal = addTone(finalForTone, selectedTone);
+          displayFinal = displayFinal.replace(/v/g, 'ü');
+          const pinyinStr = initial + displayFinal;
           showError(`"${pinyinStr}" 这个组合暂时没有对应的字哦，换一个试试吧！`);
         }
       } catch {
@@ -854,7 +954,7 @@
 
     
           updateFinalAvailability();
-          showResult(item);
+          showResult(checkWholeSyllable(item));
         }
       } catch {}
     }
