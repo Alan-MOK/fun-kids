@@ -545,6 +545,27 @@
     // 韵母内部名 → 音频文件名映射（v→ü）
     const FINAL_FILENAME = { 'v': 'ü', 'vn': 'ün', 'ue': 'üe', 've': 'üe' };
     function finalToFilename(f) { return FINAL_FILENAME[f] || f; }
+    const UE_SHORTHAND_INITIALS = new Set(['y', 'n', 'l', 'j', 'q', 'x']);
+
+    // 前端按钮韵母 → 后端韵母（这些声母下，üe 在后端统一记作 ue）
+    function mapUiFinalToApiFinal(initial, finalValue) {
+      if (!finalValue) return finalValue;
+      const displayFinal = finalToFilename(finalValue);
+      if (UE_SHORTHAND_INITIALS.has(initial) && displayFinal === 'üe') return 'ue';
+      return finalValue;
+    }
+
+    // 后端韵母 → 前端按钮韵母（按 finalToFilename 统一映射，优先命中现有按钮）
+    function mapApiFinalToUiFinal(initial, finalValue) {
+      if (!finalValue) return finalValue;
+      if (FINALS.includes(finalValue)) return finalValue;
+      if (finalValue === 'ue' && UE_SHORTHAND_INITIALS.has(initial)) return 've';
+
+      const displayFinal = finalToFilename(finalValue);
+      const directMatch = FINALS.find(f => finalToFilename(f) === displayFinal);
+      if (directMatch) return directMatch;
+      return finalValue;
+    }
 
     // 切换点读模式开关，开启时自动选中一声
     function toggleReadAloud() {
@@ -740,11 +761,7 @@
       }
 
       const initial = selectedInitial !== null ? selectedInitial : '';
-      // y + üe 在拼音正字法中简写为 yue，后端存 final=ue
-      let finalForApi = selectedFinal;
-      if (initial === 'y' && finalForApi === 've') {
-        finalForApi = 'ue';
-      }
+      const finalForApi = mapUiFinalToApiFinal(initial, selectedFinal);
       const params = new URLSearchParams({
         initial, final: finalForApi, tone: selectedTone
       });
@@ -938,22 +955,24 @@
         const data = await res.json();
         if (data.length > 0) {
           const item = data[Math.floor(Math.random() * data.length)];
+          const uiFinal = mapApiFinalToUiFinal(item.initial, item.final);
           // 设置选择状态
           selectedInitial = item.initial;
-          selectedFinal = item.final;
+          selectedFinal = uiFinal;
           selectedTone = item.tone;
 
           // 更新按钮状态
           document.querySelectorAll('.py-btn').forEach(b => b.classList.remove('selected', 'disabled'));
           const initBtn = document.querySelector(`[data-initial="${item.initial}"]`);
           if (initBtn) initBtn.classList.add('selected');
-          const finBtn = document.querySelector(`[data-final="${item.final}"]`);
+          const finBtn = document.querySelector(`[data-final="${uiFinal}"]`);
           if (finBtn) finBtn.classList.add('selected');
           const toneBtn = document.querySelector(`[data-tone="${item.tone}"]`);
           if (toneBtn) toneBtn.classList.add('selected');
 
     
           updateFinalAvailability();
+          updateInitialAvailability();
           showResult(checkWholeSyllable(item));
         }
       } catch {}
