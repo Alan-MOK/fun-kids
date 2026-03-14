@@ -393,7 +393,7 @@
     ];
 
     // v→ü/u 统一显示函数
-    // 只有3种情况显示 ü：nü、lü、独立韵母 üe
+    // n/l 保留 ü；j/q/x/y 按拼写规则用 u 代替 ü 呈现给用户
     function formatFinal(f, initial) {
       if (!f || !f.includes('v')) return f;
       // 无声母上下文（按钮标签）：v系显示为 ü 以区分 u系
@@ -404,7 +404,7 @@
       if (f === 'v' && ['n', 'l'].includes(initial)) return 'ü';
       // 零声母 + ve → üe
       if (f === 've' && initial === '') return 'üe';
-      // 其他 v→u
+      // j/q/x/y 等简写场景，v→u
       return f.replace(/v/g, 'u');
     }
 
@@ -460,9 +460,9 @@
   'k': ['a','e','u','ai','ui','ao','ou','an','en','un','ang','eng','ong','ua','uo','uai','uan','uang'],
   'h': ['a','e','u','ai','ei','ui','ao','ou','an','en','un','ang','eng','ong','ua','uo','uai','uan','uang'],
   // 舌面音
-  'j': ['i','u','iu','ie','ve','in','vn','ing','ia','iao','ian','iang','iong','uan'],
-  'q': ['i','u','iu','ie','ve','in','vn','ing','ia','iao','ian','iang','iong','uan'],
-  'x': ['i','u','iu','ie','ve','in','vn','ing','ia','iao','ian','iang','iong','uan'],
+  'j': ['i','v','iu','ie','ve','in','vn','ing','ia','iao','ian','iang','iong','uan'],
+  'q': ['i','v','iu','ie','ve','in','vn','ing','ia','iao','ian','iang','iong','uan'],
+  'x': ['i','v','iu','ie','ve','in','vn','ing','ia','iao','ian','iang','iong','uan'],
   // 翘舌音
   'zh': ['a','e','i','u','ai','ei','ui','ao','ou','an','en','un','ang','eng','ong','ua','uo','uai','uan','uang'],
   'ch': ['a','e','i','u','ai','ui','ao','ou','an','en','un','ang','eng','ong','uo','uai','uan','uang'],
@@ -473,7 +473,7 @@
   'c': ['a','e','i','u','ai','ui','ao','ou','an','en','un','ang','eng','ong','uo','uan'],
   's': ['a','e','i','u','ai','ui','ao','ou','an','en','un','ang','eng','ong','uo','uan'],
   // 半元音
-  'y': ['a','o','e','i','u','ao','ou','ve','an','in','vn','ang','ing','ong','uan'],
+  'y': ['a','o','e','i','v','ao','ou','ve','an','in','vn','ang','ing','ong','uan'],
   'w': ['a','o','u','ai','ei','an','en','ang','eng'],
 };
 
@@ -486,8 +486,8 @@
     'o': ['b','p','m','f','l','y','w'],
     'e': ['m','d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s','y'],
     'i': ['b','p','m','d','t','n','l','j','q','x','zh','ch','sh','r','z','c','s','y'],
-    'u': ['b','p','m','f','d','t','n','l','g','k','h','j','q','x','zh','ch','sh','r','z','c','s','y','w'],
-    'v': ['n','l'],
+    'u': ['b','p','m','f','d','t','n','l','g','k','h','zh','ch','sh','r','z','c','s','w'],
+    'v': ['n','l','j','q','x','y'],
     // 复韵母
     'ai': ['b','p','m','d','t','n','l','g','k','h','zh','ch','sh','z','c','s','w'],
     'ei': ['b','p','m','f','d','n','l','g','h','zh','sh','z','w'],
@@ -534,8 +534,8 @@
     // 前端兜底：根据拼音判断是否整体认读音节
     function checkWholeSyllable(item) {
       if (item.is_whole_syllable) return item;
-      // 去掉声调符号，还原为无调拼音
-      const raw = (item.initial || '') + (item.final || '');
+      const initial = item.initial || '';
+      const raw = initial + getDisplayFinal(item);
       if (WHOLE_SYLLABLES.includes(raw)) {
         item.is_whole_syllable = 1;
       }
@@ -565,6 +565,27 @@
       const directMatch = FINALS.find(f => finalToFilename(f) === displayFinal);
       if (directMatch) return directMatch;
       return finalValue;
+    }
+
+    function getToneReadyFinal(item) {
+      const initial = item.initial || '';
+      const uiFinal = mapApiFinalToUiFinal(initial, item.final);
+      if (!uiFinal) return uiFinal;
+      if (uiFinal === 'v' && ['n', 'l'].includes(initial)) return 'v';
+      if (uiFinal === 've' && initial === '') return 've';
+      return uiFinal.replace(/v/g, 'u');
+    }
+
+    function getDisplayFinal(item) {
+      const toneReadyFinal = getToneReadyFinal(item);
+      return toneReadyFinal ? toneReadyFinal.replace(/v/g, 'ü') : toneReadyFinal;
+    }
+
+    function getDisplayPinyin(item) {
+      const initial = item.initial || '';
+      const toneReadyFinal = getToneReadyFinal(item);
+      const tonedFinal = item.tone ? addTone(toneReadyFinal, item.tone) : toneReadyFinal;
+      return initial + tonedFinal.replace(/v/g, 'ü');
     }
 
     // 切换点读模式开关，开启时自动选中一声
@@ -793,21 +814,22 @@
 
     // 构建拼音拆解展示（如 b + a + ˉ = bā），用于结果卡片顶部
     function buildBreakdown(item) {
+      const displayPinyin = getDisplayPinyin(item);
       if (item.is_whole_syllable) {
         // 整体认读音节：直接显示拼音，不拆解
         return `<div class="pinyin-breakdown">
-          <span class="result-py">${item.pinyin}</span>
+          <span class="result-py">${displayPinyin}</span>
           <span style="font-size:14px;color:#999;margin-left:8px;">整体认读</span>
         </div>`;
       }
       const ini = item.initial || '';
-      const tonedFinal = item.pinyin.slice(ini.length);
+      const tonedFinal = getDisplayPinyin({ ...item, initial: '' });
       const parts = [];
       if (ini) parts.push(`<span class="part">${ini}</span>`);
       if (ini) parts.push(`<span class="symbol">+</span>`);
       parts.push(`<span class="part">${tonedFinal}</span>`);
       parts.push(`<span class="equals">=</span>`);
-      parts.push(`<span class="result-py">${item.pinyin}</span>`);
+      parts.push(`<span class="result-py">${displayPinyin}</span>`);
       return `<div class="pinyin-breakdown">${parts.join('')}</div>`;
     }
 
