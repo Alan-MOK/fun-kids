@@ -93,7 +93,13 @@ app.get('/pinyin.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'app', 'pinyin.html'));
 });
 
-app.get('/admin', (req, res) => {
+app.get(/^\/admin$/, (req, res) => {
+  const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  const target = `admin/${query}`;
+  res.redirect(302, target);
+});
+
+app.get(/^\/admin\/$/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'index.html'));
 });
 
